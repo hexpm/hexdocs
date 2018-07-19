@@ -1,6 +1,6 @@
 defmodule HexDocs do
   @moduledoc """
-  Documentation for Hexdocs.
+  Documentation for HexDocs.
   """
 
   @doc """
@@ -8,7 +8,7 @@ defmodule HexDocs do
 
   ## Examples
 
-      iex> Hexdocs.hello()
+      iex> HexDocs.hello()
       :world
 
   """
