@@ -30,8 +30,8 @@ COPY rel rel
 RUN mix release --no-tar
 
 # prepare release image
-FROM alpine:3.6
-RUN apk add --update bash
+FROM alpine:3.6 AS app
+RUN apk add --update bash openssl
 
 RUN mkdir /app && chown -R nobody: /app
 WORKDIR /app
