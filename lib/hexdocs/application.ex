@@ -36,8 +36,9 @@ defmodule Hexdocs.Application do
   end
 
   defp setup_tmp_dir() do
-    dir = Application.get_env(:hexdocs, :tmp_dir)
-    File.mkdir_p!(dir)
-    Application.put_env(:hexdocs, :tmp_dir, Path.expand(dir))
+    if dir = Application.get_env(:hexdocs, :tmp_dir) do
+      File.mkdir_p!(dir)
+      Application.put_env(:hexdocs, :tmp_dir, Path.expand(dir))
+    end
   end
 end
