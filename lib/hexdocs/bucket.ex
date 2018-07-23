@@ -1,4 +1,4 @@
-defmodule HexDocs.Bucket do
+defmodule Hexdocs.Bucket do
   # TODO: When deleting the current stable version (main docs) we should copy docs
   # to build new main docs, or delete main docs if it was the last version
 
@@ -68,7 +68,7 @@ defmodule HexDocs.Bucket do
     end)
     |> Task.async_stream(
       fn {key, data, opts} ->
-        HexDocs.Store.put(:docs_bucket, key, data, opts)
+        Hexdocs.Store.put(:docs_bucket, key, data, opts)
       end,
       max_concurrency: 10,
       timeout: 10_000
@@ -79,7 +79,7 @@ defmodule HexDocs.Bucket do
   defp delete_old_docs(repository, package, version, paths, publish_unversioned?) do
     # Add "/" so that we don't get prefix matches, for example phoenix
     # would match phoenix_html
-    existing_keys = HexDocs.Store.list(:docs_bucket, "#{repository}/#{package}/")
+    existing_keys = Hexdocs.Store.list(:docs_bucket, "#{repository}/#{package}/")
 
     keys_to_delete =
       Enum.filter(
@@ -87,7 +87,7 @@ defmodule HexDocs.Bucket do
         &delete_key?(&1, paths, repository, package, version, publish_unversioned?)
       )
 
-    HexDocs.Store.delete_many(:docs_bucket, keys_to_delete)
+    Hexdocs.Store.delete_many(:docs_bucket, keys_to_delete)
   end
 
   # TODO: Handle repository

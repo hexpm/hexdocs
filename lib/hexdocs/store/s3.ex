@@ -1,5 +1,5 @@
-defmodule HexDocs.Store.S3 do
-  @behaviour HexDocs.Store
+defmodule Hexdocs.Store.S3 do
+  @behaviour Hexdocs.Store
 
   alias ExAws.S3
 

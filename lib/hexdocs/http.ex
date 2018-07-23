@@ -1,4 +1,4 @@
-defmodule HexDocs.HTTP do
+defmodule Hexdocs.HTTP do
   @max_retry_times 3
   @base_sleep_time 100
 

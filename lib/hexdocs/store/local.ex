@@ -1,5 +1,5 @@
-defmodule HexDocs.Store.Local do
-  @behaviour HexDocs.Store
+defmodule Hexdocs.Store.Local do
+  @behaviour Hexdocs.Store
 
   def list(bucket, prefix) do
     relative = Path.join([dir(), bucket(bucket)])

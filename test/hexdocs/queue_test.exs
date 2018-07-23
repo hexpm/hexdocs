@@ -1,8 +1,8 @@
-defmodule HexDocs.QueueTest do
+defmodule Hexdocs.QueueTest do
   use ExUnit.Case, async: true
-  import HexDocs.TestHelper
-  alias HexDocs.{HexpmMock, Store}
-  alias HexDocs.Queue.Consumer
+  import Hexdocs.TestHelper
+  alias Hexdocs.{HexpmMock, Store}
+  alias Hexdocs.Queue.Consumer
 
   test "upload files", %{test: test} do
     Mox.expect(HexpmMock, :get_package, fn repo, package ->

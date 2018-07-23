@@ -1,4 +1,4 @@
-defmodule HexDocs.Queue do
+defmodule Hexdocs.Queue do
   def name() do
     Application.get_env(:hexdocs, :queue_name)
   end
@@ -46,7 +46,7 @@ defmodule HexDocs.Queue do
 
     defp pull(state) do
       %{status_code: 200, body: body} =
-        ExAws.SQS.receive_message(HexDocs.Queue.name(), @receive_opts)
+        ExAws.SQS.receive_message(Hexdocs.Queue.name(), @receive_opts)
         |> ExAws.request!()
 
       queue = Enum.reduce(body.messages, state.queue, &:queue.in/2)
@@ -70,7 +70,7 @@ defmodule HexDocs.Queue do
         body = Jason.decode!(message.body)
         handle_message(body)
 
-        ExAws.SQS.delete_message(HexDocs.Queue.name(), message.receipt_handle)
+        ExAws.SQS.delete_message(Hexdocs.Queue.name(), message.receipt_handle)
         |> ExAws.request!()
       end)
 
@@ -90,13 +90,13 @@ defmodule HexDocs.Queue do
 
       case key_components(key) do
         {:ok, repository, package, version} ->
-          body = HexDocs.Store.get(:repo_bucket, key)
+          body = Hexdocs.Store.get(:repo_bucket, key)
 
           # TODO: Handle errors
-          {:ok, files} = HexDocs.Tar.parse(body)
+          {:ok, files} = Hexdocs.Tar.parse(body)
           version = Version.parse!(version)
           all_versions = all_versions(repository, package, version)
-          HexDocs.Bucket.upload(repository, package, version, all_versions, files)
+          Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
 
         :error ->
           :ok
@@ -116,7 +116,7 @@ defmodule HexDocs.Queue do
     end
 
     defp all_versions(repository, package, version) do
-      package = HexDocs.Hexpm.get_package(repository, package)
+      package = Hexdocs.Hexpm.get_package(repository, package)
 
       package["releases"]
       |> Enum.filter(&(&1["has_docs"] and &1["version"] != version))

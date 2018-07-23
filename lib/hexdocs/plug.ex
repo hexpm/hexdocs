@@ -1,4 +1,4 @@
-defmodule HexDocs.Plug do
+defmodule Hexdocs.Plug do
   use Plug.Builder
 
   @signing_salt Application.get_env(:hexdocs, :session_signing_salt)
@@ -91,7 +91,7 @@ defmodule HexDocs.Plug do
   end
 
   defp serve_if_valid(conn, organization, key) do
-    case HexDocs.Hexpm.verify_key(key, organization) do
+    case Hexdocs.Hexpm.verify_key(key, organization) do
       :ok ->
         conn
         |> put_session("key_refreshed_at", NaiveDateTime.utc_now())
@@ -149,13 +149,13 @@ defmodule HexDocs.Plug do
   end
 
   defp fetch_page(bucket_path, path) do
-    case HexDocs.Store.get_page(:docs_bucket, bucket_path) do
+    case Hexdocs.Store.get_page(:docs_bucket, bucket_path) do
       {404, headers, body} ->
         if String.ends_with?(bucket_path, "/") do
-          {:ok, HexDocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html"))}
+          {:ok, Hexdocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html"))}
         else
           # TODO: head request
-          case HexDocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html")) do
+          case Hexdocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html")) do
             {200, _headers, _body} -> {:redirect, path <> "/"}
             _other -> {:ok, {404, headers, body}}
           end

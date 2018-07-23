@@ -1,7 +1,7 @@
-defmodule HexDocs.TarTest do
+defmodule Hexdocs.TarTest do
   use ExUnit.Case, async: true
-  import HexDocs.TestHelper
-  alias HexDocs.Tar
+  import Hexdocs.TestHelper
+  alias Hexdocs.Tar
 
   test "unzip tar" do
     blob = create_tar([{"index.html", "contents"}, {"foo.bar", "contents"}])

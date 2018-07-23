@@ -1,4 +1,4 @@
-defmodule HexDocs.Hexpm do
+defmodule Hexdocs.Hexpm do
   @callback verify_key(key :: String.t(), organization :: String.t()) ::
               :ok | :refresh | {:error, reason :: String.t()}
   @callback get_package(repo :: String.t(), package :: String.t()) :: map()

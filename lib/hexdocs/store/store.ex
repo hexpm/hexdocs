@@ -1,4 +1,4 @@
-defmodule HexDocs.Store do
+defmodule Hexdocs.Store do
   @type bucket :: atom
   @type prefix :: key
   @type key :: String.t()

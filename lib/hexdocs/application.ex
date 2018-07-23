@@ -1,24 +1,24 @@
-defmodule HexDocs.Application do
+defmodule Hexdocs.Application do
   use Application
 
   def start(_type, _args) do
     setup_tmp_dir()
 
     children = [cowboy_spec()] ++ queue_producer_specs() ++ queue_consumer_specs()
-    opts = [strategy: :one_for_one, name: HexDocs.Supervisor]
+    opts = [strategy: :one_for_one, name: Hexdocs.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
   defp cowboy_spec() do
     port = Application.get_env(:hexdocs, :port)
-    Plug.Adapters.Cowboy.child_spec(scheme: :http, plug: HexDocs.Plug, options: [port: port])
+    Plug.Adapters.Cowboy.child_spec(scheme: :http, plug: Hexdocs.Plug, options: [port: port])
   end
 
   if Mix.env() == :test do
     defp queue_producer_specs(), do: []
     defp queue_consumer_specs(), do: []
   else
-    alias HexDocs.Queue
+    alias Hexdocs.Queue
 
     @num_queue_consumers 4
 

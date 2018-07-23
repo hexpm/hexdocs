@@ -1,7 +1,7 @@
-defmodule HexDocs.PlugTest do
+defmodule Hexdocs.PlugTest do
   use ExUnit.Case, async: true
   use Plug.Test
-  alias HexDocs.{HexpmMock, Store}
+  alias Hexdocs.{HexpmMock, Store}
 
   test "requests without subdomain not supported" do
     conn = conn(:get, "http://localhost:5002/foo") |> call()
@@ -153,7 +153,7 @@ defmodule HexDocs.PlugTest do
   end
 
   defp call(conn) do
-    HexDocs.Plug.call(conn, [])
+    Hexdocs.Plug.call(conn, [])
   end
 
   defp recent?(datetime) do

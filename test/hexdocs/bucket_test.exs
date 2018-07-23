@@ -1,6 +1,6 @@
-defmodule HexDocs.BucketTest do
+defmodule Hexdocs.BucketTest do
   use ExUnit.Case, async: true
-  alias HexDocs.{Bucket, Store}
+  alias Hexdocs.{Bucket, Store}
 
   test "upload", %{test: test} do
     version = Version.parse!("0.0.1")

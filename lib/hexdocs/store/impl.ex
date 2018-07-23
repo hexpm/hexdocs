@@ -1,5 +1,5 @@
-defmodule HexDocs.Store.Impl do
-  @behaviour HexDocs.Store
+defmodule Hexdocs.Store.Impl do
+  @behaviour Hexdocs.Store
 
   def list(bucket, prefix) do
     {impl, name} = bucket(bucket)

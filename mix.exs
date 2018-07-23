@@ -1,4 +1,4 @@
-defmodule HexDocs.MixProject do
+defmodule Hexdocs.MixProject do
   use Mix.Project
 
   def project do
@@ -15,7 +15,7 @@ defmodule HexDocs.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {HexDocs.Application, []}
+      mod: {Hexdocs.Application, []}
     ]
   end
 

@@ -1,4 +1,4 @@
-defmodule HexDocs.Tar do
+defmodule Hexdocs.Tar do
   @zlib_magic 16 + 15
   @compressed_max_size 8 * 1024 * 1024
   @uncompressed_max_size 64 * 1024 * 1024

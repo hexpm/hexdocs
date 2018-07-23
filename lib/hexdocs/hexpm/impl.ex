@@ -1,5 +1,5 @@
-defmodule HexDocs.Hexpm.Impl do
-  @behaviour HexDocs.Hexpm
+defmodule Hexdocs.Hexpm.Impl do
+  @behaviour Hexdocs.Hexpm
 
   @refresh_errors [
     "invalid API key",
@@ -9,9 +9,9 @@ defmodule HexDocs.Hexpm.Impl do
 
   def verify_key(key, organization) do
     url = url("/api/auth?domain=docs&resource=#{organization}")
-    fun = fn -> HexDocs.HTTP.get(url, headers(key)) end
+    fun = fn -> Hexdocs.HTTP.get(url, headers(key)) end
 
-    case HexDocs.HTTP.retry("hexpm", fun) do
+    case Hexdocs.HTTP.retry("hexpm", fun) do
       {:ok, status, _headers, _body} when status in 200..299 ->
         :ok
 
@@ -30,8 +30,8 @@ defmodule HexDocs.Hexpm.Impl do
     key = Application.get_env(:hexdocs, :hexpm_secret)
 
     {:ok, 200, _headers, body} =
-      HexDocs.HTTP.retry("hexpm", fn ->
-        HexDocs.HTTP.get(url("/api/repos/#{repo}/packages/#{package}"), headers(key))
+      Hexdocs.HTTP.retry("hexpm", fn ->
+        Hexdocs.HTTP.get(url("/api/repos/#{repo}/packages/#{package}"), headers(key))
       end)
 
     Jason.decode!(body)

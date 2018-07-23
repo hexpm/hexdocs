@@ -1,10 +1,10 @@
 File.rm_rf("tmp")
 File.mkdir("tmp")
 
-Mox.defmock(HexDocs.HexpmMock, for: HexDocs.Hexpm)
+Mox.defmock(Hexdocs.HexpmMock, for: Hexdocs.Hexpm)
 ExUnit.start()
 
-defmodule HexDocs.TestHelper do
+defmodule Hexdocs.TestHelper do
   def create_tar(files) do
     File.mkdir_p!("tmp/tartest")
 

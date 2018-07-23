@@ -1,5 +1,5 @@
-defmodule HexDocs.Store.GS do
-  @behaviour HexDocs.Store
+defmodule Hexdocs.Store.GS do
+  @behaviour Hexdocs.Store
 
   @gs_xml_url "https://storage.googleapis.com"
   @oauth_scope "https://www.googleapis.com/auth/devstorage.read_write"
@@ -13,7 +13,7 @@ defmodule HexDocs.Store.GS do
   def get(bucket, key, _opts) do
     url = url(bucket, key)
 
-    case HexDocs.HTTP.retry("gs", fn -> HexDocs.HTTP.get(url, headers()) end) do
+    case Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end) do
       {:ok, 200, _headers, body} -> body
       {:ok, 404, _headers, _body} -> nil
     end
@@ -23,7 +23,7 @@ defmodule HexDocs.Store.GS do
     url = url(bucket, key)
 
     {:ok, status, headers, body} =
-      HexDocs.HTTP.retry("gs", fn -> HexDocs.HTTP.get(url, headers()) end)
+      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end)
 
     {status, headers, body}
   end
@@ -40,7 +40,7 @@ defmodule HexDocs.Store.GS do
     url = url(bucket, key)
 
     {:ok, 200, _headers, _body} =
-      HexDocs.HTTP.retry("gs", fn -> HexDocs.HTTP.put(url, headers, blob) end)
+      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.put(url, headers, blob) end)
 
     :ok
   end
@@ -49,7 +49,7 @@ defmodule HexDocs.Store.GS do
     url = url(bucket, key)
 
     {:ok, 204, _headers, _body} =
-      HexDocs.HTTP.retry("gs", fn -> HexDocs.HTTP.delete(url, headers()) end)
+      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.delete(url, headers()) end)
 
     :ok
   end
@@ -84,7 +84,7 @@ defmodule HexDocs.Store.GS do
     url = url(bucket) <> "?prefix=#{prefix}&marker=#{marker}"
 
     {:ok, 200, _headers, body} =
-      HexDocs.HTTP.retry("gs", fn -> HexDocs.HTTP.get(url, headers()) end)
+      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end)
 
     doc = SweetXml.parse(body)
     marker = SweetXml.xpath(doc, ~x"/ListBucketResult/Marker/text()"s)
