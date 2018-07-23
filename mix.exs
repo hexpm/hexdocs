@@ -23,6 +23,7 @@ defmodule Hexdocs.MixProject do
   defp deps do
     [
       {:cowboy, "~> 1.1"},
+      {:distillery, "~> 1.5", runtime: :false},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws_sqs, "~> 2.0"},
