@@ -3,7 +3,6 @@ defmodule Hexdocs.Plug do
 
   @signing_salt Application.get_env(:hexdocs, :session_signing_salt)
   @encryption_salt Application.get_env(:hexdocs, :session_encryption_salt)
-  @secret_key_base Application.get_env(:hexdocs, :session_key_base)
   @key_html_fresh_time 60
   @key_asset_fresh_time 120
   @key_lifetime 60 * 60 * 24 * 29
@@ -29,7 +28,7 @@ defmodule Hexdocs.Plug do
   plug(:run)
 
   defp put_secret_key_base(conn, _opts) do
-    put_in(conn.secret_key_base, @secret_key_base)
+    put_in(conn.secret_key_base, Application.get_env(:hexdocs, :session_key_base))
   end
 
   defp run(conn, _opts) do
