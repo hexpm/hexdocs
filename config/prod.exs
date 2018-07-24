@@ -22,7 +22,7 @@ config :hexdocs, :docs_bucket,
 
 config :ex_aws,
   access_key_id: "${HEXDOCS_AWS_ACCESS_KEY_ID}",
-  secret_access_key: "${HEXDOCS_AWS_SECRET_ACCESS_KEY}",
+  secret_access_key: "${HEXDOCS_AWS_ACCESS_KEY_SECRET}",
   json_codec: Jason
 
 config :goth, json: {:system, "HEXDOCS_GCP_CREDENTIALS"}
