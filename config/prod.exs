@@ -25,4 +25,4 @@ config :ex_aws,
   secret_access_key: "${HEXDOCS_AWS_SECRET_ACCESS_KEY}",
   json_codec: Jason
 
-config :goth, json: "${HEXDOCS_GCP_CREDENTIALS}"
+config :goth, json: {:system, "HEXDOCS_GCP_CREDENTIALS"}
