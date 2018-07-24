@@ -33,6 +33,7 @@ defmodule Hexdocs.MixProject do
       {:jason, "~> 1.1"},
       {:mox, "~> 0.4.0"},
       {:plug, "~> 1.6"},
+      {:poison, "~> 3.1"},
       {:sweet_xml, "~> 0.6.5"}
     ]
   end
