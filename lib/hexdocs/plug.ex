@@ -1,5 +1,6 @@
 defmodule Hexdocs.Plug do
   use Plug.Builder
+  alias Plug.Conn
 
   @signing_salt Application.get_env(:hexdocs, :session_signing_salt)
   @encryption_salt Application.get_env(:hexdocs, :session_encryption_salt)
@@ -29,6 +30,10 @@ defmodule Hexdocs.Plug do
 
   defp put_secret_key_base(conn, _opts) do
     put_in(conn.secret_key_base, Application.get_env(:hexdocs, :session_key_base))
+  end
+
+  defp run(%Conn{path_info: ["status"]} = conn, _opts) do
+    send_resp(conn, 200, "")
   end
 
   defp run(conn, _opts) do
