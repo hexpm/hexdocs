@@ -1,5 +1,6 @@
 defmodule Hexdocs.Plug do
   use Plug.Builder
+  use Plug.ErrorHandler
   alias Plug.Conn
 
   @signing_salt Application.get_env(:hexdocs, :session_signing_salt)
@@ -8,8 +9,12 @@ defmodule Hexdocs.Plug do
   @key_asset_fresh_time 120
   @key_lifetime 60 * 60 * 24 * 29
 
-  # plug(Plug.RequestId)
-  # plug(Plug.Logger)
+  if Mix.env == :dev do
+    use Plug.Debugger, otp_app: :my_app
+  end
+
+  plug(Hexdocs.Plug.Forwarded)
+  plug(Plug.RequestId)
 
   plug Plug.Static,
     at: "/",
@@ -17,8 +22,18 @@ defmodule Hexdocs.Plug do
     gzip: true,
     only: ~w(css fonts images js),
     only_matching: ~w(favicon robots)
+
+  if Mix.env != :test do
+    plug(Plug.Logger)
+  end
+
   plug(Plug.Head)
 
+  if Mix.env == :prod do
+    plug(Plug.SSL, rewrite_on: [:x_forwarded_proto])
+  end
+
+  # TODO: Use MFAs
   plug(Plug.Session,
     store: :cookie,
     key: "_hexdocs_key",
@@ -26,9 +41,6 @@ defmodule Hexdocs.Plug do
     encryption_salt: @encryption_salt,
     max_age: 60 * 60 * 24 * 30
   )
-
-  # TODO: SSL
-  # TODO: Rollbar
 
   plug(:put_secret_key_base)
   plug(:fetch_session)
