@@ -32,3 +32,5 @@ config :rollbax,
   environment: to_string(Mix.env()),
   enabled: !!System.get_env("HEXDOCS_ROLLBAR_ACCESS_TOKEN"),
   enable_crash_reports: true
+
+config :logger, :console, format: "$time $metadata[$level] $levelpad$message\n"
