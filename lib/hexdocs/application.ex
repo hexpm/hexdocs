@@ -14,10 +14,7 @@ defmodule Hexdocs.Application do
     Plug.Adapters.Cowboy.child_spec(scheme: :http, plug: Hexdocs.Plug, options: [port: port])
   end
 
-  if Mix.env() == :test do
-    defp queue_producer_specs(), do: []
-    defp queue_consumer_specs(), do: []
-  else
+  if Mix.env() == :prod do
     alias Hexdocs.Queue
 
     @num_queue_consumers 4
@@ -33,6 +30,9 @@ defmodule Hexdocs.Application do
         %{id: id, start: {Queue.Consumer, :start_link, [id, opts]}}
       end)
     end
+  else
+    defp queue_producer_specs(), do: []
+    defp queue_consumer_specs(), do: []
   end
 
   defp setup_tmp_dir() do
