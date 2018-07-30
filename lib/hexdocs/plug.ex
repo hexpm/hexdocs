@@ -10,6 +10,13 @@ defmodule Hexdocs.Plug do
 
   # plug(Plug.RequestId)
   # plug(Plug.Logger)
+
+  plug Plug.Static,
+    at: "/",
+    from: :hexdocs,
+    gzip: true,
+    only: ~w(css fonts images js),
+    only_matching: ~w(favicon robots)
   plug(Plug.Head)
 
   plug(Plug.Session,
