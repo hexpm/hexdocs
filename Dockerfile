@@ -25,6 +25,7 @@ RUN mix deps.compile
 
 # build release
 COPY lib lib
+COPY priv priv
 RUN mix compile
 COPY rel rel
 RUN mix release --no-tar
