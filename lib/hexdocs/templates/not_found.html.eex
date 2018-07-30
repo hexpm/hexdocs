@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page not found - HexDocs</title>
+    <link rel="stylesheet" href="/complete.css">
+    <link rel="shortcut icon" href="/favicon.png">
+  </head>
+
+  <body>
+    <div class="splash-container">
+      <div class="splash">
+        <h1>Page not found</h1>
+        <p>
+          Is something wrong with the package documentation? Open an issue on the project the documentation belongs to. Most packages link to their repository from their <a href="https://hex.pm/packages">hex.pm page</a>.
+        </p>
+
+        <p>
+          If you are seeing this as the publisher of a package you may want to verify that you configured <a href="https://github.com/elixir-lang/ex_doc"><code>ex_doc</code></a> correctly for your project or if you believe the issue is with <code>ex_doc</code> open an issue there.
+        </p>
+
+        <p class="splash-subhead">
+          <a href="https://hex.pm/">Go back to Hex</a>
+        </p>
+
+        <p>
+          <small>
+            Is something wrong? Let us know by <a href="https://github.com/hexpm/hex_web/issues">opening an issue</a> or <a href="mailto:support@hex.pm">emailing support</a>.
+          </small>
+        </p>
+
+      </div>
+    </div>
+  </body>
+</html>

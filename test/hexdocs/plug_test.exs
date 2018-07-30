@@ -95,8 +95,7 @@ defmodule Hexdocs.PlugTest do
       |> call()
 
     assert conn.status == 403
-    # TODO: Fix this message
-    assert conn.resp_body == "403 - account not authorized"
+    assert conn.resp_body =~ "account not authorized"
   end
 
   test "serve 200 page", %{test: test} do
@@ -122,8 +121,7 @@ defmodule Hexdocs.PlugTest do
       |> call()
 
     assert conn.status == 404
-    # TODO: 404 page
-    assert conn.resp_body == "404"
+    assert conn.resp_body =~ "Page not found"
   end
 
   test "redirect to root", %{test: test} do

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication error - HexDocs</title>
+    <link rel="stylesheet" href="/complete.css">
+    <link rel="shortcut icon" href="/favicon.png">
+  </head>
+
+  <body>
+    <div class="splash-container">
+      <div class="splash">
+        <h1>Authentication error</h1>
+        <p>
+          You are not able to access this page: <%= @reason %>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

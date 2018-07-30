@@ -112,8 +112,7 @@ defmodule Hexdocs.Plug do
         redirect_hexpm(conn, organization)
 
       {:error, message} ->
-        # TODO: show error page 403.html?
-        send_resp(conn, 403, "403 - #{message}")
+        send_resp(conn, 403, Hexdocs.Templates.auth_error(reason: message))
     end
   end
 
@@ -149,10 +148,10 @@ defmodule Hexdocs.Plug do
         |> send_resp(200, body)
 
       {:ok, {404, headers, _body}} ->
-        # TODO: 404 page
         conn
         |> transfer_headers(headers)
-        |> send_resp(404, "404")
+        |> put_resp_content_type("text/html")
+        |> send_resp(404, Hexdocs.Templates.not_found([]))
 
       {:redirect, path} ->
         redirect(conn, path)
