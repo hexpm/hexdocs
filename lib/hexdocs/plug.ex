@@ -1,6 +1,7 @@
 defmodule Hexdocs.Plug do
   use Plug.Builder
   use Plug.ErrorHandler
+  use Hexdocs.Plug.Rollbax
   alias Plug.Conn
 
   @signing_salt Application.get_env(:hexdocs, :session_signing_salt)

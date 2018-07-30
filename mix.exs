@@ -34,6 +34,7 @@ defmodule Hexdocs.MixProject do
       {:mox, "~> 0.4.0"},
       {:plug, "~> 1.6"},
       {:poison, "~> 3.1"},
+      {:rollbax, "~> 0.9.2"},
       {:sweet_xml, "~> 0.6.5"}
     ]
   end

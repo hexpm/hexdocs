@@ -26,3 +26,9 @@ config :ex_aws,
   json_codec: Jason
 
 config :goth, json: {:system, "HEXDOCS_GCP_CREDENTIALS"}
+
+config :rollbax,
+  access_token: System.get_env("HEXDOCS_ROLLBAR_ACCESS_TOKEN"),
+  environment: to_string(Mix.env()),
+  enabled: !!System.get_env("HEXDOCS_ROLLBAR_ACCESS_TOKEN"),
+  enable_crash_reports: true
