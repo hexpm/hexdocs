@@ -90,7 +90,6 @@ defmodule Hexdocs.Bucket do
     Hexdocs.Store.delete_many(:docs_bucket, keys_to_delete)
   end
 
-  # TODO: Handle repository
   defp delete_key?(key, paths, repository, package, version, publish_unversioned?) do
     # Don't delete if we are going to overwrite with new files, this
     # removes the downtime between a deleted and added page
