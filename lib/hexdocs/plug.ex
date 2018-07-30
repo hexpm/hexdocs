@@ -31,7 +31,7 @@ defmodule Hexdocs.Plug do
   plug(Plug.Head)
 
   if Mix.env == :prod do
-    plug(Plug.SSL, rewrite_on: [:x_forwarded_proto])
+    plug(Hexdocs.Plug.SSL, rewrite_on: [:x_forwarded_proto])
   end
 
   # TODO: Use MFAs
