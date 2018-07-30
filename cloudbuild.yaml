@@ -1,21 +1,21 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/hexdocs-build:latest']
+  args: ['pull', 'gcr.io/$PROJECT_ID/hexdocs-build:master']
   id: pull-build
   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['pull', 'gcr.io/$PROJECT_ID/hexdocs:latest']
+  args: ['pull', 'gcr.io/$PROJECT_ID/hexdocs:master']
   id: pull-app
   waitFor: ['-']
 - name: 'gcr.io/cloud-builders/docker'
   args:
   - 'build'
   - '-t'
-  - 'gcr.io/$PROJECT_ID/hexdocs-build:latest'
+  - 'gcr.io/$PROJECT_ID/hexdocs-build:$BRANCH_NAME'
   - '-t'
   - 'gcr.io/$PROJECT_ID/hexdocs-build:$SHORT_SHA'
   - '--cache-from'
-  - 'gcr.io/$PROJECT_ID/hexdocs-build:latest'
+  - 'gcr.io/$PROJECT_ID/hexdocs-build:master'
   - '--target'
   - 'build'
   - '.'
@@ -25,13 +25,13 @@ steps:
   args:
   - 'build'
   - '-t'
-  - 'gcr.io/$PROJECT_ID/hexdocs:latest'
+  - 'gcr.io/$PROJECT_ID/hexdocs:$BRANCH_NAME'
   - '-t'
   - 'gcr.io/$PROJECT_ID/hexdocs:$SHORT_SHA'
   - '--cache-from'
-  - 'gcr.io/$PROJECT_ID/hexdocs-build:latest'
+  - 'gcr.io/$PROJECT_ID/hexdocs-build:master'
   - '--cache-from'
-  - 'gcr.io/$PROJECT_ID/hexdocs:latest'
+  - 'gcr.io/$PROJECT_ID/hexdocs:master'
   - '--target'
   - 'app'
   - '.'
@@ -39,7 +39,7 @@ steps:
   waitFor: ['build-build', 'pull-app']
 
 images:
-- 'gcr.io/$PROJECT_ID/hexdocs-build:latest'
-- 'gcr.io/$PROJECT_ID/hexdocs:latest'
+- 'gcr.io/$PROJECT_ID/hexdocs-build:$BRANCH_NAME'
+- 'gcr.io/$PROJECT_ID/hexdocs:$BRANCH_NAME'
 - 'gcr.io/$PROJECT_ID/hexdocs-build:$SHORT_SHA'
 - 'gcr.io/$PROJECT_ID/hexdocs:$SHORT_SHA'
