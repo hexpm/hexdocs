@@ -21,3 +21,5 @@ config :goth,
     "project_id" => "support",
     "token_source" => :oauth_jwt
   }
+
+config :logger, level: :warn

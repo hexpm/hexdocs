@@ -56,6 +56,7 @@ defmodule Hexdocs.Queue do
 
   defmodule Consumer do
     use GenStage
+    require Logger
 
     def start_link(id, opts) do
       GenStage.start_link(__MODULE__, opts, name: id)
@@ -87,6 +88,7 @@ defmodule Hexdocs.Queue do
 
     defp handle_record(%{"eventName" => "ObjectCreated:" <> _, "s3" => s3}) do
       key = s3["object"]["key"]
+      Logger.info "Processing docs #{key}"
 
       case key_components(key) do
         {:ok, repository, package, version} ->
@@ -97,6 +99,7 @@ defmodule Hexdocs.Queue do
           version = Version.parse!(version)
           all_versions = all_versions(repository, package, version)
           Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
+          Logger.info "Finished processing docs #{key}"
 
         :error ->
           :ok
