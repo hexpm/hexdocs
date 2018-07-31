@@ -28,9 +28,9 @@ config :ex_aws,
 config :goth, json: {:system, "HEXDOCS_GCP_CREDENTIALS"}
 
 config :rollbax,
-  access_token: System.get_env("HEXDOCS_ROLLBAR_ACCESS_TOKEN"),
+  access_token: "${HEXDOCS_ROLLBAR_ACCESS_TOKEN}",
   environment: to_string(Mix.env()),
-  enabled: !!System.get_env("HEXDOCS_ROLLBAR_ACCESS_TOKEN"),
+  enabled: true,
   enable_crash_reports: true
 
 config :sasl, sasl_error_logger: false
