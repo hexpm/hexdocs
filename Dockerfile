@@ -40,6 +40,7 @@ USER nobody
 
 COPY --from=build /app/_build/prod/rel/hexdocs ./
 
+ENV HOME=/app
 ENV REPLACE_OS_VARS=true
 
 ENTRYPOINT ["/app/bin/hexdocs", "foreground"]
