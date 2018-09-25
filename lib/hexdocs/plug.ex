@@ -24,14 +24,16 @@ defmodule Hexdocs.Plug do
     only: ~w(css fonts images js),
     only_matching: ~w(favicon robots)
 
+  plug Plug.RequestId
   if Mix.env != :test do
     plug(Plug.Logger)
   end
 
   plug(Plug.Head)
+  plug(Hexdocs.Plug.Status)
 
   if Mix.env == :prod do
-    plug(Hexdocs.Plug.SSL, rewrite_on: [:x_forwarded_proto])
+    plug(Plug.SSL, rewrite_on: [:x_forwarded_proto])
   end
 
   # TODO: Use MFAs
