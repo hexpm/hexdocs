@@ -40,13 +40,14 @@ defmodule Hexdocs.Queue do
     end
 
     defp pull(%{demand: 0} = state) do
-      send(self(), :pull)
       {:noreply, [], state}
     end
 
     defp pull(state) do
+      opts = Keyword.update!(@receive_opts, :max_number_of_message, &min(&1, state.demand))
+
       %{status_code: 200, body: body} =
-        ExAws.SQS.receive_message(Hexdocs.Queue.name(), @receive_opts)
+        ExAws.SQS.receive_message(Hexdocs.Queue.name(), opts)
         |> ExAws.request!()
 
       queue = Enum.reduce(body.messages, state.queue, &:queue.in/2)

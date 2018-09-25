@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :hexdocs,
-  port: 4002,
+  port: "4002",
   hexpm_url: "http://localhost:4000",
   hexpm_secret: "2cd6d09334d4b00a2be4d532342b799b",
   hexpm_impl: Hexdocs.Hexpm.Impl,
