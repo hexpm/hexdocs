@@ -5,9 +5,11 @@ use Mix.Releases.Config,
 environment :prod do
   set(include_erts: true)
   set(include_src: false)
-  set(post_configure_hook: "rel/hooks/typonf.sh")
+  set(pre_configure_hook: "rel/hooks/pre_configure")
 end
 
 release :hexdocs do
   set(version: current_version(:hexdocs))
+  set(cookie: "")
+  set(vm_args: "rel/vm.args")
 end

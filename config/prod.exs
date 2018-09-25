@@ -1,7 +1,7 @@
 use Mix.Config
 
 config :hexdocs,
-  port: {:integer, "${HEXDOCS_PORT}"},
+  port: "${HEXDOCS_PORT}",
   hexpm_url: "${HEXDOCS_HEXPM_URL}",
   hexpm_secret: "${HEXDOCS_HEXPM_SECRET}",
   queue_name: "${HEXDOCS_QUEUE_NAME}",

@@ -10,7 +10,7 @@ defmodule Hexdocs.Application do
   end
 
   defp cowboy_spec() do
-    port = Application.get_env(:hexdocs, :port)
+    port = String.to_integer(Application.get_env(:hexdocs, :port))
     Plug.Adapters.Cowboy.child_spec(scheme: :http, plug: Hexdocs.Plug, options: [port: port])
   end
 

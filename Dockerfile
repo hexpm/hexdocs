@@ -14,9 +14,6 @@ RUN mix local.hex --force && \
 # set build ENV
 ENV MIX_ENV=prod
 
-ARG CODE_VERSION
-ENV CODE_VERSION=$CODE_VERSION
-
 # install mix dependencies
 COPY mix.exs mix.lock ./
 COPY config config
@@ -24,8 +21,8 @@ RUN mix deps.get
 RUN mix deps.compile
 
 # build release
-COPY lib lib
 COPY priv priv
+COPY lib lib
 RUN mix compile
 COPY rel rel
 RUN mix release --no-tar
@@ -40,7 +37,4 @@ USER nobody
 
 COPY --from=build /app/_build/prod/rel/hexdocs ./
 
-ENV HOME=/app
-ENV REPLACE_OS_VARS=true
-
-ENTRYPOINT ["/app/bin/hexdocs", "foreground"]
+ENV HOME=/app REPLACE_OS_VARS=true
