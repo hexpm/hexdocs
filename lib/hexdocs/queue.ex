@@ -13,7 +13,7 @@ defmodule Hexdocs.Queue do
     end
 
     def init([]) do
-      {:producer, %{demand: 0, queue: :queue.new()}}
+      {:producer, %{demand: 0, queue: :queue.new(), pulling: false}}
     end
 
     def handle_demand(new_demand, state) do
@@ -21,6 +21,7 @@ defmodule Hexdocs.Queue do
     end
 
     def handle_info(:pull, state) do
+      state = %{state | pulling: false}
       pull(state)
     end
 
@@ -34,7 +35,7 @@ defmodule Hexdocs.Queue do
           dispatch(%{state | queue: queue, demand: demand - 1}, [message | events])
 
         {:empty, queue} ->
-          send(self(), :pull)
+          state = send_pull(state)
           {:noreply, events, %{state | queue: queue}}
       end
     end
@@ -52,6 +53,15 @@ defmodule Hexdocs.Queue do
 
       queue = Enum.reduce(body.messages, state.queue, &:queue.in/2)
       dispatch(%{state | queue: queue}, [])
+    end
+
+    defp send_pull(%{pulling: false} = state) do
+      send(self(), :pull)
+      %{state | pulling: true}
+    end
+
+    defp send_pull(%{pulling: true} = state) do
+      state
     end
   end
 
