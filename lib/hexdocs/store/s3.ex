@@ -36,6 +36,16 @@ defmodule Hexdocs.Store.S3 do
     end
   end
 
+  # Fake the streaming since we don't use this for S3 and ExAws doesn't support it
+  def stream_page(bucket, key, opts) do
+    S3.get_object(bucket, key, opts)
+    |> ExAws.request()
+    |> case do
+      {:ok, result} -> {200, Map.new(result.headers), [result.body]}
+      {:error, {:http_error, status, result}} -> {status, Map.new(result.headers), ""}
+    end
+  end
+
   def put(bucket, key, blob, opts) do
     S3.put_object(bucket, key, blob, opts)
     |> ExAws.request!()

@@ -36,6 +36,15 @@ defmodule Hexdocs.Store.GS do
     {status, headers, body}
   end
 
+  def stream_page(bucket, key, _opts) do
+    url = url(bucket, key)
+
+    {:ok, status, headers, stream} =
+      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get_stream(url, headers()) end)
+
+    {status, headers, stream}
+  end
+
   def put(bucket, key, blob, opts) do
     headers =
       headers() ++

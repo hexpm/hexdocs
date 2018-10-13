@@ -11,6 +11,7 @@ defmodule Hexdocs.Store do
   @callback get(bucket, key, opts) :: body | nil
   @callback head_page(bucket, key, opts) :: {status, headers}
   @callback get_page(bucket, key, opts) :: {status, headers, body}
+  @callback stream_page(bucket, key, opts) :: {status, headers, Enum.t()}
   @callback put(bucket, key, body, opts) :: term
   @callback delete(bucket, key) :: term
   @callback delete_many(bucket, [key]) :: [term]
@@ -21,6 +22,7 @@ defmodule Hexdocs.Store do
   def get(bucket, key, opts \\ []), do: impl().get(bucket, key, opts)
   def head_page(bucket, key, opts \\ []), do: impl().head_page(bucket, key, opts)
   def get_page(bucket, key, opts \\ []), do: impl().get_page(bucket, key, opts)
+  def stream_page(bucket, key, opts \\ []), do: impl().stream_page(bucket, key, opts)
   def put(bucket, key, body, opts \\ []), do: impl().put(bucket, key, body, opts)
   def delete(bucket, key), do: impl().delete(bucket, key)
   def delete_many(bucket, keys), do: impl().delete_many(bucket, keys)

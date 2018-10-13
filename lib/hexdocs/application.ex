@@ -13,7 +13,7 @@ defmodule Hexdocs.Application do
 
   defp cowboy_spec() do
     port = String.to_integer(Application.get_env(:hexdocs, :port))
-    Plug.Adapters.Cowboy.child_spec(scheme: :http, plug: Hexdocs.Plug, options: [port: port])
+    Plug.Adapters.Cowboy2.child_spec(scheme: :http, plug: Hexdocs.Plug, options: [port: port])
   end
 
   if Mix.env() == :prod do

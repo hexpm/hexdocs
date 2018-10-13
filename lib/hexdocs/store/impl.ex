@@ -21,6 +21,11 @@ defmodule Hexdocs.Store.Impl do
     impl.get_page(name, key, opts)
   end
 
+  def stream_page(bucket, key, opts) do
+    {impl, name} = bucket(bucket)
+    impl.stream_page(name, key, opts)
+  end
+
   def put(bucket, key, body, opts) do
     {impl, name} = bucket(bucket)
     impl.put(name, key, body, opts)

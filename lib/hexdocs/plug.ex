@@ -3,6 +3,7 @@ defmodule Hexdocs.Plug do
   use Plug.ErrorHandler
   use Hexdocs.Plug.Rollbax
   alias Plug.Conn
+  require Logger
 
   @signing_salt Application.get_env(:hexdocs, :session_signing_salt)
   @encryption_salt Application.get_env(:hexdocs, :session_encryption_salt)
@@ -159,12 +160,13 @@ defmodule Hexdocs.Plug do
     bucket_path = organization <> uri.path
 
     case fetch_page(bucket_path, uri.path) do
-      {:ok, {200, headers, body}} ->
+      {:ok, {200, headers, stream}} ->
         conn
         |> transfer_headers(headers)
-        |> send_resp(200, body)
+        |> send_chunked(200)
+        |> stream_body(stream)
 
-      {:ok, {404, headers, _body}} ->
+      {:ok, {404, headers, _consumed_stream}} ->
         conn
         |> transfer_headers(headers)
         |> put_resp_content_type("text/html")
@@ -177,13 +179,16 @@ defmodule Hexdocs.Plug do
 
   defp fetch_page(bucket_path, path) do
     if String.ends_with?(bucket_path, "/") do
-      {:ok, Hexdocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html"))}
+      {:ok, Hexdocs.Store.stream_page(:docs_bucket, Path.join(bucket_path, "index.html"))}
     else
-      case Hexdocs.Store.get_page(:docs_bucket, bucket_path) do
-        {404, headers, body} ->
+      case Hexdocs.Store.stream_page(:docs_bucket, bucket_path) do
+        {404, headers, stream} ->
+          # Read full body, since we don't use HTTP continuations
+          Stream.run(stream)
+
           case Hexdocs.Store.head_page(:docs_bucket, Path.join(bucket_path, "index.html")) do
             {200, _headers} -> {:redirect, path <> "/"}
-            _other -> {:ok, {404, headers, body}}
+            _other -> {:ok, {404, headers, :stream_consumed}}
           end
 
         other ->
@@ -192,7 +197,27 @@ defmodule Hexdocs.Plug do
     end
   end
 
-  @transfer_headers ["content-type", "cache-control", "expires", "last-modified", "etag"]
+  defp stream_body(conn, stream) do
+    Enum.reduce_while(stream, conn, fn
+      {:ok, chunk}, conn ->
+        case chunk(conn, chunk) do
+          {:ok, conn} ->
+            {:cont, conn}
+
+          {:error, reason} ->
+            Logger.warn("Streaming sink error: #{inspect(reason)}")
+            {:halt, conn}
+        end
+
+      {:error, reason}, conn ->
+        # We stop streaming before sending the full body but cowboy
+        # will clean up the connection for us
+        Logger.warn("Streaming source error: #{inspect(reason)}")
+        {:halt, conn}
+    end)
+  end
+
+  @transfer_headers ~w(content-length content-type cache-control expires last-modified etag)
 
   defp transfer_headers(conn, headers) do
     headers = Map.new(headers, fn {key, value} -> {String.downcase(key), value} end)
