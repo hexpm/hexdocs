@@ -22,7 +22,7 @@ defmodule Hexdocs.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:cowboy, "~> 1.1"},
+      {:cowboy, "~> 2.5"},
       {:distillery, "~> 1.5", runtime: false},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
@@ -32,7 +32,7 @@ defmodule Hexdocs.MixProject do
       {:hackney, "~> 1.13"},
       {:jason, "~> 1.1"},
       {:mox, "~> 0.4.0"},
-      {:plug, "~> 1.6"},
+      {:plug, github: "elixir-lang/plug"},
       {:poison, "~> 3.1"},
       {:rollbax, "~> 0.9.2"},
       {:sweet_xml, "~> 0.6.5"}

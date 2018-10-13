@@ -7,7 +7,6 @@ defmodule Hexdocs.Plug.Rollbax do
           url = "#{conn.scheme}://#{conn.host}:#{conn.port}#{conn.request_path}"
           user_ip = conn.remote_ip |> :inet.ntoa() |> List.to_string()
           headers = Map.new(conn.req_headers)
-          endpoint_url = conn.host <> conn.request_path
 
           conn_data = %{
             "request" => %{
@@ -18,8 +17,8 @@ defmodule Hexdocs.Plug.Rollbax do
               "method" => conn.method
             },
             "server" => %{
-              "host" => endpoint_url[:host],
-              "root" => endpoint_url[:path]
+              "host" => conn.host,
+              "root" => "/"
             }
           }
 
