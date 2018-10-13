@@ -77,7 +77,7 @@ defmodule Hexdocs.PlugTest do
     assert conn.status == 302
 
     assert get_resp_header(conn, "location") ==
-           ["http://localhost:5000/login?hexdocs=plugtest&return=/foo"]
+             ["http://localhost:5000/login?hexdocs=plugtest&return=/foo"]
   end
 
   test "reverify stale key fails" do

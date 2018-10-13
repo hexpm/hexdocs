@@ -10,29 +10,31 @@ defmodule Hexdocs.Plug do
   @key_asset_fresh_time 120
   @key_lifetime 60 * 60 * 24 * 29
 
-  if Mix.env == :dev do
+  if Mix.env() == :dev do
     use Plug.Debugger, otp_app: :my_app
   end
 
   plug(Hexdocs.Plug.Forwarded)
   plug(Plug.RequestId)
 
-  plug Plug.Static,
+  plug(Plug.Static,
     at: "/",
     from: :hexdocs,
     gzip: true,
     only: ~w(css fonts images js),
     only_matching: ~w(favicon robots)
+  )
 
-  plug Plug.RequestId
-  if Mix.env != :test do
+  plug(Plug.RequestId)
+
+  if Mix.env() != :test do
     plug(Plug.Logger)
   end
 
   plug(Plug.Head)
   plug(Hexdocs.Plug.Status)
 
-  if Mix.env == :prod do
+  if Mix.env() == :prod do
     plug(Plug.SSL, rewrite_on: [:x_forwarded_proto])
   end
 
