@@ -1,6 +1,8 @@
 defmodule Hexdocs.Application do
   use Application
 
+  alias Hexdocs.Queue, warn: false
+
   def start(_type, _args) do
     setup_tmp_dir()
 
@@ -15,8 +17,6 @@ defmodule Hexdocs.Application do
   end
 
   if Mix.env() == :prod do
-    alias Hexdocs.Queue
-
     @num_queue_consumers 4
 
     defp queue_producer_specs() do
