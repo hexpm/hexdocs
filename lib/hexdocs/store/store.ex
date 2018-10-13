@@ -9,6 +9,7 @@ defmodule Hexdocs.Store do
 
   @callback list(bucket, prefix) :: [key]
   @callback get(bucket, key, opts) :: body | nil
+  @callback head_page(bucket, key, opts) :: {status, headers}
   @callback get_page(bucket, key, opts) :: {status, headers, body}
   @callback put(bucket, key, body, opts) :: term
   @callback delete(bucket, key) :: term
@@ -18,6 +19,7 @@ defmodule Hexdocs.Store do
 
   def list(bucket, prefix), do: impl().list(bucket, prefix)
   def get(bucket, key, opts \\ []), do: impl().get(bucket, key, opts)
+  def head_page(bucket, key, opts \\ []), do: impl().head_page(bucket, key, opts)
   def get_page(bucket, key, opts \\ []), do: impl().get_page(bucket, key, opts)
   def put(bucket, key, body, opts \\ []), do: impl().put(bucket, key, body, opts)
   def delete(bucket, key), do: impl().delete(bucket, key)

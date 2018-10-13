@@ -11,6 +11,11 @@ defmodule Hexdocs.Store.Impl do
     impl.get(name, key, opts)
   end
 
+  def head_page(bucket, key, opts) do
+    {impl, name} = bucket(bucket)
+    impl.head_page(name, key, opts)
+  end
+
   def get_page(bucket, key, opts) do
     {impl, name} = bucket(bucket)
     impl.get_page(name, key, opts)

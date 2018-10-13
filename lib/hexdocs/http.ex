@@ -4,22 +4,26 @@ defmodule Hexdocs.HTTP do
 
   require Logger
 
+  def head(url, headers) do
+    :hackney.head(url, headers)
+  end
+
   def get(url, headers) do
     :hackney.get(url, headers)
-    |> read_request()
+    |> read_response()
   end
 
   def put(url, headers, body) do
     :hackney.put(url, headers, body)
-    |> read_request()
+    |> read_response()
   end
 
   def delete(url, headers) do
     :hackney.delete(url, headers)
-    |> read_request()
+    |> read_response()
   end
 
-  defp read_request(result) do
+  defp read_response(result) do
     with {:ok, status, headers, ref} <- result,
          {:ok, body} <- :hackney.body(ref) do
       {:ok, status, headers, body}

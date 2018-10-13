@@ -19,6 +19,14 @@ defmodule Hexdocs.Store.GS do
     end
   end
 
+  def head_page(bucket, key, _opts) do
+    url = url(bucket, key)
+
+    {:ok, status, headers} = Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.head(url, headers()) end)
+
+    {status, headers}
+  end
+
   def get_page(bucket, key, _opts) do
     url = url(bucket, key)
 
