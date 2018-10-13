@@ -176,20 +176,19 @@ defmodule Hexdocs.Plug do
   end
 
   defp fetch_page(bucket_path, path) do
-    case Hexdocs.Store.get_page(:docs_bucket, bucket_path) do
-      {404, headers, body} ->
-        if String.ends_with?(bucket_path, "/") do
-          {:ok, Hexdocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html"))}
-        else
-          # TODO: head request
-          case Hexdocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html")) do
-            {200, _headers, _body} -> {:redirect, path <> "/"}
+    if String.ends_with?(bucket_path, "/") do
+      {:ok, Hexdocs.Store.get_page(:docs_bucket, Path.join(bucket_path, "index.html"))}
+    else
+      case Hexdocs.Store.get_page(:docs_bucket, bucket_path) do
+        {404, headers, body} ->
+          case Hexdocs.Store.head_page(:docs_bucket, Path.join(bucket_path, "index.html")) do
+            {200, _headers} -> {:redirect, path <> "/"}
             _other -> {:ok, {404, headers, body}}
           end
-        end
 
-      other ->
-        {:ok, other}
+        other ->
+          {:ok, other}
+      end
     end
   end
 

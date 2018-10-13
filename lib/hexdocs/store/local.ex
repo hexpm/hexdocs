@@ -25,6 +25,16 @@ defmodule Hexdocs.Store.Local do
     end
   end
 
+  def head_page(bucket, key, _opts) do
+    path = Path.join([dir(), bucket(bucket), key])
+
+    if File.regular?(path) do
+      {200, []}
+    else
+      {404, []}
+    end
+  end
+
   def get_page(bucket, key, _opts) do
     path = Path.join([dir(), bucket(bucket), key])
 

@@ -13,8 +13,17 @@ defmodule Hexdocs.Store.S3 do
     S3.get_object(bucket, key, opts)
     |> ExAws.request()
     |> case do
-      {:ok, %{body: body}} -> body
+      {:ok, result} -> result.body
       {:error, {:http_error, 404, _}} -> nil
+    end
+  end
+
+  def head_page(bucket, key, opts) do
+    S3.head_object(bucket, key, opts)
+    |> ExAws.request()
+    |> case do
+      {:ok, result} -> {200, Map.new(result.headers)}
+      {:error, {:http_error, status, result}} -> {status, Map.new(result.headers)}
     end
   end
 
@@ -22,8 +31,8 @@ defmodule Hexdocs.Store.S3 do
     S3.get_object(bucket, key, opts)
     |> ExAws.request()
     |> case do
-      {:ok, %{body: body}} -> {200, [], body}
-      {:error, {:http_error, status, _}} -> {status, [], ""}
+      {:ok, result} -> {200, Map.new(result.headers), result.body}
+      {:error, {:http_error, status, result}} -> {status, Map.new(result.headers), ""}
     end
   end
 
