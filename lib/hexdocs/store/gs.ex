@@ -1,5 +1,5 @@
 defmodule Hexdocs.Store.GS do
-  @behaviour Hexdocs.Store
+  @behaviour Hexdocs.Store.Docs
 
   @gs_xml_url "https://storage.googleapis.com"
   @oauth_scope "https://www.googleapis.com/auth/devstorage.read_write"
@@ -10,30 +10,12 @@ defmodule Hexdocs.Store.GS do
     list_stream(bucket, prefix)
   end
 
-  def get(bucket, key, _opts) do
-    url = url(bucket, key)
-
-    case Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end) do
-      {:ok, 200, _headers, body} -> body
-      {:ok, 404, _headers, _body} -> nil
-    end
-  end
-
   def head_page(bucket, key, _opts) do
     url = url(bucket, key)
 
     {:ok, status, headers} = Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.head(url, headers()) end)
 
     {status, headers}
-  end
-
-  def get_page(bucket, key, _opts) do
-    url = url(bucket, key)
-
-    {:ok, status, headers, body} =
-      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end)
-
-    {status, headers, body}
   end
 
   def stream_page(bucket, key, _opts) do
@@ -62,15 +44,6 @@ defmodule Hexdocs.Store.GS do
     :ok
   end
 
-  def delete(bucket, key) do
-    url = url(bucket, key)
-
-    {:ok, 204, _headers, _body} =
-      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.delete(url, headers()) end)
-
-    :ok
-  end
-
   def delete_many(bucket, keys) do
     keys
     |> Task.async_stream(
@@ -79,6 +52,15 @@ defmodule Hexdocs.Store.GS do
       timeout: 10_000
     )
     |> Stream.run()
+  end
+
+  defp delete(bucket, key) do
+    url = url(bucket, key)
+
+    {:ok, 204, _headers, _body} =
+      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.delete(url, headers()) end)
+
+    :ok
   end
 
   defp list_stream(bucket, prefix) do
