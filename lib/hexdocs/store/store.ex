@@ -21,13 +21,15 @@ defmodule Hexdocs.Store do
     @type prefix :: key
     @type key :: String.t()
     @type body :: binary
+    @type stream :: Enum.t()
     @type opts :: Keyword.t()
     @type status :: 100..599
     @type headers :: %{String.t() => String.t()}
 
     @callback list(bucket, prefix) :: [key]
     @callback head_page(bucket, key, opts) :: {status, headers}
-    @callback stream_page(bucket, key, opts) :: {status, headers, Enum.t()}
+    @callback get_page(bucket, key, opts) :: {status, headers, body}
+    @callback stream_page(bucket, key, opts) :: {status, headers, stream}
     @callback put(bucket, key, body, opts) :: term
     @callback delete_many(bucket, [key]) :: [term]
   end
@@ -40,6 +42,5 @@ defmodule Hexdocs.Store do
   def get_page(bucket, key, opts \\ []), do: impl().get_page(bucket, key, opts)
   def stream_page(bucket, key, opts \\ []), do: impl().stream_page(bucket, key, opts)
   def put(bucket, key, body, opts \\ []), do: impl().put(bucket, key, body, opts)
-  def delete(bucket, key), do: impl().delete(bucket, key)
   def delete_many(bucket, keys), do: impl().delete_many(bucket, keys)
 end

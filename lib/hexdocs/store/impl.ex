@@ -32,11 +32,6 @@ defmodule Hexdocs.Store.Impl do
     impl.put(name, key, body, opts)
   end
 
-  def delete(bucket, key) do
-    {impl, name} = bucket(bucket)
-    impl.delete(name, key)
-  end
-
   def delete_many(bucket, keys) do
     {impl, name} = bucket(bucket)
     impl.delete_many(name, keys)

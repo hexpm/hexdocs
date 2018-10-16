@@ -42,7 +42,7 @@ defmodule Hexdocs.HTTP do
     next_fun = fn
       :cont ->
         case :hackney.stream_body(ref) do
-          {:ok, data} -> {[{:ok, data}], :stop}
+          {:ok, data} -> {[{:ok, data}], :cont}
           :done -> {:halt, :ok}
           {:error, reason} -> {[{:error, reason}], :stop}
         end
