@@ -3,6 +3,8 @@ defmodule Hexdocs.PlugTest do
   use Plug.Test
   alias Hexdocs.{HexpmMock, Store}
 
+  @bucket :docs_private_bucket
+
   test "requests without subdomain not supported" do
     conn = conn(:get, "http://localhost:5002/foo") |> call()
     assert conn.status == 400
@@ -48,7 +50,7 @@ defmodule Hexdocs.PlugTest do
     end)
 
     old = NaiveDateTime.add(NaiveDateTime.utc_now(), -3600)
-    Store.put(:docs_bucket, "plugtest/#{test}/index.html", "body")
+    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
@@ -67,7 +69,7 @@ defmodule Hexdocs.PlugTest do
     end)
 
     old = NaiveDateTime.add(NaiveDateTime.utc_now(), -3600)
-    Store.put(:docs_bucket, "plugtest/#{test}/index.html", "body")
+    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/foo")
@@ -100,7 +102,7 @@ defmodule Hexdocs.PlugTest do
 
   test "serve 200 page", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(:docs_bucket, "plugtest/#{test}/index.html", "body")
+    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
@@ -113,7 +115,7 @@ defmodule Hexdocs.PlugTest do
 
   test "serve 404 page", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(:docs_bucket, "plugtest/#{test}/index.html", "body")
+    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/404.html")
@@ -126,7 +128,7 @@ defmodule Hexdocs.PlugTest do
 
   test "redirect to root", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(:docs_bucket, "plugtest/#{test}/index.html", "body")
+    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}")
@@ -139,7 +141,7 @@ defmodule Hexdocs.PlugTest do
 
   test "serve index.html for root requests", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(:docs_bucket, "plugtest/#{test}/index.html", "body")
+    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/")

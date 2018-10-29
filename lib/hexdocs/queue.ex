@@ -120,13 +120,22 @@ defmodule Hexdocs.Queue do
     defp key_components(key) do
       case Path.split(key) do
         ["repos", repository, "docs", file] ->
-          base = Path.basename(file, ".tar.gz")
-          [package, version] = String.split(base, "-", parts: 2)
+          {package, version} = filename_to_release(file)
           {:ok, repository, package, version}
+
+        ["docs", file] ->
+          {package, version} = filename_to_release(file)
+          {:ok, "hexpm", package, version}
 
         _ ->
           :error
       end
+    end
+
+    defp filename_to_release(file) do
+      base = Path.basename(file, ".tar.gz")
+      [package, version] = String.split(base, "-", parts: 2)
+      {package, version}
     end
 
     defp all_versions(repository, package, version) do
