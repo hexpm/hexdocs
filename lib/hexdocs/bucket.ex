@@ -55,14 +55,16 @@ defmodule Hexdocs.Bucket do
 
   defp upload_new_files(files) do
     Enum.map(files, fn {store_key, cdn_key, data} ->
-      surrogate_key = {"surrogate-key", cdn_key}
-      surrogate_control = {"surrogate-control", "max-age=604800"}
+      meta = [
+        {"surrogate-key", cdn_key},
+        {"surrogate-control", "public, max-age=604800"}
+      ]
 
       # NOTE: private cache-control
       opts =
         content_type(store_key)
         |> Keyword.put(:cache_control, "private, max-age=3600")
-        |> Keyword.put(:meta, [surrogate_key, surrogate_control])
+        |> Keyword.put(:meta, meta)
 
       {store_key, data, opts}
     end)
