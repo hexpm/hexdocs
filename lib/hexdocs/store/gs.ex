@@ -42,10 +42,11 @@ defmodule Hexdocs.Store.GS do
         meta_headers(Keyword.fetch!(opts, :meta)) ++
         [
           {"cache-control", Keyword.fetch!(opts, :cache_control)},
-          {"content-type", Keyword.fetch!(opts, :content_type)}
+          {"content-type", Keyword.get(opts, :content_type)}
         ]
 
     url = url(bucket, key)
+    headers = filter_nil_values(headers)
 
     {:ok, 200, _headers, _body} =
       Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.put(url, headers, blob) end)
@@ -100,6 +101,10 @@ defmodule Hexdocs.Store.GS do
     marker = if marker != "", do: marker
 
     {items, marker}
+  end
+
+  defp filter_nil_values(keyword) do
+    Enum.reject(keyword, fn {_key, value} -> is_nil(value) end)
   end
 
   defp headers() do
