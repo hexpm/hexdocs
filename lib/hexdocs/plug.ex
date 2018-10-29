@@ -179,14 +179,14 @@ defmodule Hexdocs.Plug do
 
   defp fetch_page(bucket_path, path) do
     if String.ends_with?(bucket_path, "/") do
-      {:ok, Hexdocs.Store.stream_page(:docs_bucket, Path.join(bucket_path, "index.html"))}
+      {:ok, stream_page(Path.join(bucket_path, "index.html"))}
     else
-      case Hexdocs.Store.stream_page(:docs_bucket, bucket_path) do
+      case stream_page(bucket_path) do
         {404, headers, stream} ->
           # Read full body, since we don't use HTTP continuations
           Stream.run(stream)
 
-          case Hexdocs.Store.head_page(:docs_bucket, Path.join(bucket_path, "index.html")) do
+          case head_page(Path.join(bucket_path, "index.html")) do
             {200, _headers} -> {:redirect, path <> "/"}
             _other -> {:ok, {404, headers, :stream_consumed}}
           end
@@ -195,6 +195,14 @@ defmodule Hexdocs.Plug do
           {:ok, other}
       end
     end
+  end
+
+  defp stream_page(path) do
+    Hexdocs.Store.stream_page(:docs_private_bucket, path)
+  end
+
+  defp head_page(path) do
+    Hexdocs.Store.head_page(:docs_private_bucket, path)
   end
 
   defp stream_body(conn, stream) do

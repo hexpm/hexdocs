@@ -4,7 +4,10 @@ defmodule Hexdocs.QueueTest do
   alias Hexdocs.{HexpmMock, Store}
   alias Hexdocs.Queue.Consumer
 
-  test "upload files", %{test: test} do
+  @bucket :docs_private_bucket
+  @public_bucket :docs_public_bucket
+
+  test "upload private files", %{test: test} do
     Mox.expect(HexpmMock, :get_package, fn repo, package ->
       assert repo == "queuetest"
       assert package == "#{test}"
@@ -18,10 +21,30 @@ defmodule Hexdocs.QueueTest do
 
     Consumer.handle_message(put_message(key))
 
-    files = Store.list(:docs_bucket, "queuetest/#{test}/")
+    files = Store.list(@bucket, "queuetest/#{test}/")
     assert length(files) == 2
-    assert Store.get(:docs_bucket, "queuetest/#{test}/index.html") == "contents"
-    assert Store.get(:docs_bucket, "queuetest/#{test}/1.0.0/index.html") == "contents"
+    assert Store.get(@bucket, "queuetest/#{test}/index.html") == "contents"
+    assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "contents"
+  end
+
+  test "upload public files", %{test: test} do
+    Mox.expect(HexpmMock, :get_package, fn repo, package ->
+      assert repo == "hexpm"
+      assert package == "#{test}"
+
+      %{"releases" => []}
+    end)
+
+    key = "docs/#{test}-1.0.0.tar.gz"
+    tar = create_tar([{"index.html", "contents"}])
+    Store.put(:repo_bucket, key, tar)
+
+    Consumer.handle_message(put_message(key))
+
+    files = Store.list(@public_bucket, "#{test}/")
+    assert length(files) == 2
+    assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
+    assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "contents"
   end
 
   test "overwrite main docs with newer versions", %{test: test} do
@@ -35,16 +58,16 @@ defmodule Hexdocs.QueueTest do
     key = "repos/queuetest/docs/#{test}-2.0.0.tar.gz"
     tar = create_tar([{"index.html", "2.0.0"}])
     Store.put(:repo_bucket, key, tar)
-    Store.put(:docs_bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
-    Store.put(:docs_bucket, "queuetest/#{test}/index.html", "1.0.0")
+    Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
+    Store.put(@bucket, "queuetest/#{test}/index.html", "1.0.0")
 
     Consumer.handle_message(put_message(key))
 
-    files = Store.list(:docs_bucket, "queuetest/#{test}/")
+    files = Store.list(@bucket, "queuetest/#{test}/")
     assert length(files) == 3
-    assert Store.get(:docs_bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
-    assert Store.get(:docs_bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
-    assert Store.get(:docs_bucket, "queuetest/#{test}/index.html") == "2.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/index.html") == "2.0.0"
   end
 
   test "dont overwrite main docs with older versions", %{test: test} do
@@ -58,16 +81,16 @@ defmodule Hexdocs.QueueTest do
     key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
     tar = create_tar([{"index.html", "1.0.0"}])
     Store.put(:repo_bucket, key, tar)
-    Store.put(:docs_bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
-    Store.put(:docs_bucket, "queuetest/#{test}/index.html", "2.0.0")
+    Store.put(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
+    Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
     Consumer.handle_message(put_message(key))
 
-    files = Store.list(:docs_bucket, "queuetest/#{test}/")
+    files = Store.list(@bucket, "queuetest/#{test}/")
     assert length(files) == 3
-    assert Store.get(:docs_bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
-    assert Store.get(:docs_bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
-    assert Store.get(:docs_bucket, "queuetest/#{test}/index.html") == "2.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/index.html") == "2.0.0"
   end
 
   test "overwrite main docs with older versions if has_docs is false", %{test: test} do
@@ -81,20 +104,20 @@ defmodule Hexdocs.QueueTest do
     key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
     tar = create_tar([{"index.html", "1.0.0"}])
     Store.put(:repo_bucket, key, tar)
-    Store.put(:docs_bucket, "queuetest/#{test}/1.0.0/index.html", "garbage")
-    Store.put(:docs_bucket, "queuetest/#{test}/index.html", "garbage")
+    Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "garbage")
+    Store.put(@bucket, "queuetest/#{test}/index.html", "garbage")
 
     Consumer.handle_message(put_message(key))
 
-    files = Store.list(:docs_bucket, "queuetest/#{test}/")
+    files = Store.list(@bucket, "queuetest/#{test}/")
     assert length(files) == 2
-    assert Store.get(:docs_bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
-    assert Store.get(:docs_bucket, "queuetest/#{test}/index.html") == "1.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
+    assert Store.get(@bucket, "queuetest/#{test}/index.html") == "1.0.0"
   end
 
   test "do nothing for key that does not match", %{test: test} do
     Consumer.handle_message(put_message("queuetest/packages/#{test}"))
-    assert Store.list(:docs_bucket, "queuetest/#{test}/") == []
+    assert Store.list(@bucket, "queuetest/#{test}/") == []
   end
 
   defp put_message(key) do

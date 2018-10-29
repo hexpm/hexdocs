@@ -7,6 +7,9 @@ config :hexdocs,
   queue_name: "${HEXDOCS_QUEUE_NAME}",
   hexpm_impl: Hexdocs.Hexpm.Impl,
   store_impl: Hexdocs.Store.Impl,
+  cdn_impl: Hexdocs.CDN.Local,
+  fastly_key: "${HEXDOCS_FASTLY_KEY}",
+  fastly_hexdocs: "${HEXDOCS_FASTLY_HEXDOCS}",
   session_key_base: "${HEXDOCS_SESSION_KEY_BASE}",
   session_signing_salt: "${HEXDOCS_SESSION_SIGNING_SALT}",
   session_encryption_salt: "${HEXDOCS_SESSION_ENCRYPTION_SALT}",
@@ -16,8 +19,12 @@ config :hexdocs, :repo_bucket,
   name: "${HEXDOCS_REPO_BUCKET}",
   implementation: Hexdocs.Store.S3
 
-config :hexdocs, :docs_bucket,
-  name: "${HEXDOCS_DOCS_BUCKET}",
+config :hexdocs, :docs_private_bucket,
+  name: "${HEXDOCS_DOCS_PRIVATE_BUCKET}",
+  implementation: Hexdocs.Store.GS
+
+config :hexdocs, :docs_public_bucket,
+  name: "${HEXDOCS_DOCS_PUBLIC_BUCKET}",
   implementation: Hexdocs.Store.GS
 
 config :ex_aws,
