@@ -6,7 +6,7 @@ defmodule Hexdocs.TarTest do
   test "unzip tar" do
     blob = create_tar([{"index.html", "contents"}, {"foo.bar", "contents"}])
 
-    assert {:ok, files} = Tar.parse(blob)
+    assert {:ok, files} = Tar.unpack(blob)
     assert length(files) == 2
     assert {"index.html", "contents"} in files
     assert {"foo.bar", "contents"} in files
@@ -16,9 +16,9 @@ defmodule Hexdocs.TarTest do
     reason = "root file or directory name not allowed to match a semver version"
 
     blob = create_tar([{"1.0.0", "contents"}])
-    assert Tar.parse(blob) == {:error, reason}
+    assert Tar.unpack(blob) == {:error, reason}
 
     blob = create_tar([{"1.0.0/index.html", "contents"}])
-    assert Tar.parse(blob) == {:error, reason}
+    assert Tar.unpack(blob) == {:error, reason}
   end
 end

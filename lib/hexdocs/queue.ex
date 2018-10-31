@@ -99,18 +99,34 @@ defmodule Hexdocs.Queue do
 
     defp handle_record(%{"eventName" => "ObjectCreated:" <> _, "s3" => s3}) do
       key = s3["object"]["key"]
-      Logger.info("Processing docs #{key}")
+      Logger.info("Object created #{key}")
 
       case key_components(key) do
         {:ok, repository, package, version} ->
           body = Hexdocs.Store.get(:repo_bucket, key)
 
           # TODO: Handle errors
-          {:ok, files} = Hexdocs.Tar.parse(body)
+          {:ok, files} = Hexdocs.Tar.unpack(body)
           version = Version.parse!(version)
-          all_versions = all_versions(repository, package, version)
+          all_versions = all_versions(repository, package)
           Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
-          Logger.info("Finished processing docs #{key}")
+          Logger.info("Finished uploading docs #{key}")
+
+        :error ->
+          :ok
+      end
+    end
+
+    defp handle_record(%{"eventName" => "ObjectRemoved:" <> _, "s3" => s3}) do
+      key = s3["object"]["key"]
+      Logger.info("Object deleted #{key}")
+
+      case key_components(key) do
+        {:ok, repository, package, version} ->
+          version = Version.parse!(version)
+          all_versions = all_versions(repository, package)
+          Hexdocs.Bucket.delete(repository, package, version, all_versions)
+          Logger.info("Finished deleting docs #{key}")
 
         :error ->
           :ok
@@ -138,11 +154,11 @@ defmodule Hexdocs.Queue do
       {package, version}
     end
 
-    defp all_versions(repository, package, version) do
+    defp all_versions(repository, package) do
       package = Hexdocs.Hexpm.get_package(repository, package)
 
       package["releases"]
-      |> Enum.filter(&(&1["has_docs"] and &1["version"] != version))
+      |> Enum.filter(& &1["has_docs"])
       |> Enum.map(&Version.parse!(&1["version"]))
       |> Enum.sort(&(Version.compare(&1, &2) == :gt))
     end
