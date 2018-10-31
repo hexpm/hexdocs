@@ -1,4 +1,14 @@
 defmodule Hexdocs.Bucket do
+  def upload_sitemap(sitemap) do
+    opts = [
+      content_type: "text/xml",
+      cache_control: "public, max-age=3600",
+      meta: [{"surrogate-key", "sitemap"}]
+    ]
+
+    Hexdocs.Store.put(:docs_public_bucket, "sitemap.xml", sitemap, opts)
+    Hexdocs.CDN.purge_key(:fastly_hexdocs, "sitemap")
+  end
 
   def upload(repository, package, version, all_versions, files) do
     latest_version? = latest_version?(version, all_versions)

@@ -7,6 +7,14 @@ defmodule Hexdocs.QueueTest do
   @bucket :docs_private_bucket
   @public_bucket :docs_public_bucket
 
+  setup do
+    Mox.expect(HexpmMock, :hexdocs_sitemap, fn  ->
+      "this is the sitemap"
+    end)
+
+    :ok
+  end
+
   describe "put object" do
     test "upload private files", %{test: test} do
       Mox.expect(HexpmMock, :get_package, fn repo, package ->
@@ -120,6 +128,19 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message("queuetest/packages/#{test}"))
       assert Store.list(@bucket, "queuetest/#{test}/") == []
     end
+
+    test "update sitemap", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn _repo, _package ->
+        %{"releases" => []}
+      end)
+
+      key = "docs/#{test}-1.0.0.tar.gz"
+      tar = create_tar([{"index.html", "1.0.0"}])
+      Store.put(:repo_bucket, key, tar)
+      Consumer.handle_message(put_message(key))
+
+      assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
+    end
   end
 
   describe "delete object" do
@@ -194,6 +215,17 @@ defmodule Hexdocs.QueueTest do
       assert length(files) == 2
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "1.0.0"
+    end
+
+    test "update sitemap", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn _repo, _package ->
+        %{"releases" => []}
+      end)
+
+      key = "docs/#{test}-1.0.0.tar.gz"
+      Consumer.handle_message(delete_message(key))
+
+      assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
     end
   end
 
