@@ -3,7 +3,7 @@ defmodule Hexdocs.Tar do
   @compressed_max_size 8 * 1024 * 1024
   @uncompressed_max_size 64 * 1024 * 1024
 
-  def parse(body) do
+  def unpack(body) do
     with {:ok, data} <- unzip(body),
          {:ok, files} <- :erl_tar.extract({:binary, data}, [:memory]),
          files = Enum.map(files, fn {path, data} -> {List.to_string(path), data} end),

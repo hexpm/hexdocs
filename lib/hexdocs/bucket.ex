@@ -1,18 +1,45 @@
 defmodule Hexdocs.Bucket do
-  # TODO: When deleting the current stable version (main docs) we should copy docs
-  # to build new main docs, or delete main docs if it was the last version
 
   def upload(repository, package, version, all_versions, files) do
-    publishing_unversioned? = publishing_unversioned?(version, all_versions)
-    upload_files = list_upload_files(repository, package, version, files, publishing_unversioned?)
+    latest_version? = latest_version?(version, all_versions)
+    upload_type = upload_type(latest_version?)
+    upload_files = list_upload_files(repository, package, version, files, upload_type)
     paths = MapSet.new(upload_files, &elem(&1, 0))
 
-    delete_old_docs(repository, package, version, paths, publishing_unversioned?)
     upload_new_files(upload_files)
-    purge_hexdocs_cache(repository, package, version, publishing_unversioned?)
+    delete_old_docs(repository, package, [version], paths, upload_type)
+    purge_hexdocs_cache(repository, package, [version], upload_type)
   end
 
-  defp publishing_unversioned?(version, all_versions) do
+  def delete(repository, package, version, all_versions) do
+    deleting_latest_version? = latest_version?(version, all_versions)
+    new_latest_version = latest_version(all_versions -- [version])
+
+    cond do
+      deleting_latest_version? && new_latest_version ->
+        key = build_key(repository, package, new_latest_version)
+        body = Hexdocs.Store.get(:repo_bucket, key)
+        {:ok, files} = Hexdocs.Tar.unpack(body)
+
+        upload_files = list_upload_files(repository, package, new_latest_version, files, :both)
+        paths = MapSet.new(upload_files, &elem(&1, 0))
+        update_versions = [version, new_latest_version]
+
+        upload_new_files(upload_files)
+        delete_old_docs(repository, package, update_versions, paths, :both)
+        purge_hexdocs_cache(repository, package, update_versions, :both)
+
+      deleting_latest_version? ->
+        delete_old_docs(repository, package, [version], [], :both)
+        purge_hexdocs_cache(repository, package, [version], :both)
+
+      true ->
+        delete_old_docs(repository, package, [version], [], :versioned)
+        purge_hexdocs_cache(repository, package, [version], :versioned)
+    end
+  end
+
+  defp latest_version?(version, all_versions) do
     pre_release? = version.pre != []
     first_release? = all_versions == []
     all_pre_releases? = Enum.all?(all_versions, &(&1.pre != []))
@@ -35,7 +62,19 @@ defmodule Hexdocs.Bucket do
     end
   end
 
-  defp list_upload_files(repository, package, version, files, publishing_unversioned?) do
+  defp latest_version(versions) do
+    Enum.find(versions, &(&1.pre != [])) || List.first(versions)
+  end
+
+  defp build_key("hexpm", package, version) do
+    Path.join("docs", "#{package}-#{version}.tar.gz")
+  end
+
+  defp build_key(repository, package, version) do
+    Path.join(["repos", repository, "docs", "#{package}-#{version}.tar.gz"])
+  end
+
+  defp list_upload_files(repository, package, version, files, upload_type) do
     Enum.flat_map(files, fn {path, data} ->
       public? = repository == "hexpm"
       versioned_path = repository_path(repository, Path.join([package, to_string(version), path]))
@@ -46,10 +85,10 @@ defmodule Hexdocs.Bucket do
       cdn_key = docspage_unversioned_cdn_key(repository, package)
       unversioned = {unversioned_path, cdn_key, data, public?}
 
-      if publishing_unversioned? do
-        [versioned, unversioned]
-      else
-        [versioned]
+      case upload_type do
+        :both -> [versioned, unversioned]
+        :versioned -> [versioned]
+        :unversioned -> [unversioned]
       end
     end)
   end
@@ -78,7 +117,7 @@ defmodule Hexdocs.Bucket do
     |> Stream.run()
   end
 
-  defp delete_old_docs(repository, package, version, paths, publish_unversioned?) do
+  defp delete_old_docs(repository, package, versions, paths, upload_type) do
     public? = repository == "hexpm"
     bucket = bucket(public?)
     # Add "/" so that we don't get prefix matches, for example phoenix
@@ -88,13 +127,13 @@ defmodule Hexdocs.Bucket do
     keys_to_delete =
       Enum.filter(
         existing_keys,
-        &delete_key?(&1, paths, repository, package, version, publish_unversioned?)
+        &delete_key?(&1, paths, repository, package, versions, upload_type)
       )
 
     Hexdocs.Store.delete_many(bucket, keys_to_delete)
   end
 
-  defp delete_key?(key, paths, repository, package, version, publish_unversioned?) do
+  defp delete_key?(key, paths, repository, package, versions, upload_type) do
     # Don't delete if we are going to overwrite with new files, this
     # removes the downtime between a deleted and added page
     if key in paths do
@@ -109,11 +148,13 @@ defmodule Hexdocs.Bucket do
       case Version.parse(first) do
         {:ok, first} ->
           # Current (/ecto/0.8.1/...)
-          Version.compare(first, version) == :eq
+          Enum.any?(versions, fn version ->
+            Version.compare(first, version) == :eq
+          end)
 
         :error ->
           # Top-level docs, don't match version directories (/ecto/...)
-          publish_unversioned?
+          upload_type in [:both, :unversioned]
       end
     end
   end
@@ -134,16 +175,25 @@ defmodule Hexdocs.Bucket do
   defp repository_path("hexpm", path), do: path
   defp repository_path(repository, path), do: Path.join(repository, path)
 
-  defp purge_hexdocs_cache("hexpm", package, version, publish_unversioned?) do
-    if publish_unversioned? do
-      Task.async_stream([
-        fn -> purge_versioned_docspage("hexpm", package, version) end,
-        fn -> purge_unversioned_docspage("hexpm", package) end
-      ], fn fun -> fun.() end)
-      |> Stream.run()
-    else
-      purge_versioned_docspage("hexpm", package, version)
-    end
+  defp purge_hexdocs_cache("hexpm", package, versions, :both) do
+    versions
+    |> Enum.map(fn version ->
+      fn -> purge_versioned_docspage("hexpm", package, version) end
+    end)
+    |> Kernel.++([fn -> purge_unversioned_docspage("hexpm", package) end])
+    |> run_async_stream()
+  end
+
+  defp purge_hexdocs_cache("hexpm", package, versions, :versioned) do
+    versions
+    |> Enum.map(fn version ->
+      fn -> purge_versioned_docspage("hexpm", package, version) end
+    end)
+    |> run_async_stream()
+  end
+
+  defp purge_hexdocs_cache("hexpm", package, _versions, :unversioned) do
+    purge_unversioned_docspage("hexpm", package)
   end
 
   defp purge_hexdocs_cache(_repository, _package, _version, _publish_unversioned?) do
@@ -170,4 +220,21 @@ defmodule Hexdocs.Bucket do
 
   defp repository_cdn_key("hexpm"), do: ""
   defp repository_cdn_key(repository), do: "#{repository}-"
+
+  defp upload_type(true = _latest_version?), do: :both
+  defp upload_type(false = _latest_version?), do: :versioned
+
+  defp run_async_stream([]) do
+    :ok
+  end
+
+  defp run_async_stream([fun]) do
+    fun.()
+  end
+
+  defp run_async_stream(funs) do
+    funs
+    |> Task.async_stream(fn fun -> fun.() end)
+    |> Stream.run()
+  end
 end
