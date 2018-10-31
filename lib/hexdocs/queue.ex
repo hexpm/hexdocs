@@ -110,6 +110,7 @@ defmodule Hexdocs.Queue do
           version = Version.parse!(version)
           all_versions = all_versions(repository, package)
           Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
+          update_sitemap(repository)
           Logger.info("Finished uploading docs #{key}")
 
         :error ->
@@ -126,6 +127,7 @@ defmodule Hexdocs.Queue do
           version = Version.parse!(version)
           all_versions = all_versions(repository, package)
           Hexdocs.Bucket.delete(repository, package, version, all_versions)
+          update_sitemap(repository)
           Logger.info("Finished deleting docs #{key}")
 
         :error ->
@@ -161,6 +163,19 @@ defmodule Hexdocs.Queue do
       |> Enum.filter(& &1["has_docs"])
       |> Enum.map(&Version.parse!(&1["version"]))
       |> Enum.sort(&(Version.compare(&1, &2) == :gt))
+    end
+
+    defp update_sitemap("hexpm") do
+      Logger.info("Updating sitemap")
+
+      body = Hexdocs.Hexpm.hexdocs_sitemap()
+      Hexdocs.Bucket.upload_sitemap(body)
+
+      Logger.info("Updated sitemap")
+    end
+
+    defp update_sitemap(_repository) do
+      :ok
     end
   end
 end

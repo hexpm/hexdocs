@@ -37,6 +37,15 @@ defmodule Hexdocs.Hexpm.Impl do
     Jason.decode!(body)
   end
 
+  def hexdocs_sitemap() do
+    {:ok, 200, _headers, body} =
+      Hexdocs.HTTP.retry("hexpm", fn ->
+        Hexdocs.HTTP.get(url("/docs_sitemap.xml"), [])
+      end)
+
+    body
+  end
+
   defp url(path) do
     Application.get_env(:hexdocs, :hexpm_url) <> path
   end
