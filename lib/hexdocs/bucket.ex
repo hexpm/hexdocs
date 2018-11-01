@@ -132,7 +132,7 @@ defmodule Hexdocs.Bucket do
     bucket = bucket(public?)
     # Add "/" so that we don't get prefix matches, for example phoenix
     # would match phoenix_html
-    existing_keys = Hexdocs.Store.list(bucket, "#{repository}/#{package}/")
+    existing_keys = Hexdocs.Store.list(bucket, repository_path(repository, "#{package}/"))
 
     keys_to_delete =
       Enum.filter(
@@ -151,7 +151,7 @@ defmodule Hexdocs.Bucket do
     else
       first =
         key
-        |> Path.relative_to(Path.join(repository, package))
+        |> Path.relative_to(repository_path(repository, package))
         |> Path.split()
         |> hd()
 

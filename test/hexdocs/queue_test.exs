@@ -217,6 +217,36 @@ defmodule Hexdocs.QueueTest do
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "1.0.0"
     end
 
+    test "replace public unversioned docs when removing version latest version", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn repo, package ->
+        assert repo == "hexpm"
+        assert package == "#{test}"
+
+        %{
+          "releases" => [
+            %{"version" => "1.0.0", "has_docs" => true},
+            %{"version" => "2.0.0", "has_docs" => true}
+          ]
+        }
+      end)
+
+      key = "docs/#{test}-1.0.0.tar.gz"
+      tar = create_tar([{"index.html", "1.0.0"}])
+      Store.put(:repo_bucket, key, tar)
+
+      Store.put(@public_bucket, "#{test}/2.0.0/index.html", "2.0.0")
+      Store.put(@public_bucket, "#{test}/1.0.0/index.html", "1.0.0")
+      Store.put(@public_bucket, "#{test}/index.html", "2.0.0")
+
+      key = "docs/#{test}-2.0.0.tar.gz"
+      Consumer.handle_message(delete_message(key))
+
+      files = Store.list(@public_bucket, "#{test}/")
+      assert length(files) == 2
+      assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "1.0.0"
+      assert Store.get(@public_bucket, "#{test}/index.html") == "1.0.0"
+    end
+
     test "update sitemap", %{test: test} do
       Mox.expect(HexpmMock, :get_package, fn _repo, _package ->
         %{"releases" => []}
