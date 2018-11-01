@@ -69,6 +69,8 @@ defmodule Hexdocs.Queue do
     use GenStage
     require Logger
 
+    @elixir_apps ~w(eex elixir ex_unit iex logger mix)
+
     def start_link(id, opts) do
       GenStage.start_link(__MODULE__, opts, name: id)
     end
@@ -142,8 +144,10 @@ defmodule Hexdocs.Queue do
           {:ok, repository, package, version}
 
         ["docs", file] ->
-          {package, version} = filename_to_release(file)
-          {:ok, "hexpm", package, version}
+          case filename_to_release(file) do
+            {package, _version} when package in @elixir_apps -> :error
+            {package, version} -> {:ok, "hexpm", package, version}
+          end
 
         _ ->
           :error
