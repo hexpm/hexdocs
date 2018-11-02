@@ -161,12 +161,14 @@ defmodule Hexdocs.Queue do
     end
 
     defp all_versions(repository, package) do
-      package = Hexdocs.Hexpm.get_package(repository, package)
-
-      package["releases"]
-      |> Enum.filter(& &1["has_docs"])
-      |> Enum.map(&Version.parse!(&1["version"]))
-      |> Enum.sort(&(Version.compare(&1, &2) == :gt))
+      if package = Hexdocs.Hexpm.get_package(repository, package) do
+        package["releases"]
+        |> Enum.filter(& &1["has_docs"])
+        |> Enum.map(&Version.parse!(&1["version"]))
+        |> Enum.sort(&(Version.compare(&1, &2) == :gt))
+      else
+        []
+      end
     end
 
     defp update_sitemap("hexpm") do

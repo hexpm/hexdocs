@@ -1,7 +1,7 @@
 defmodule Hexdocs.Hexpm do
   @callback verify_key(key :: String.t(), organization :: String.t()) ::
               :ok | :refresh | {:error, reason :: String.t()}
-  @callback get_package(repo :: String.t(), package :: String.t()) :: map()
+  @callback get_package(repo :: String.t(), package :: String.t()) :: map() | nil
   @callback hexdocs_sitemap() :: binary()
 
   defp impl(), do: Application.get_env(:hexdocs, :hexpm_impl)

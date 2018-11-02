@@ -247,6 +247,23 @@ defmodule Hexdocs.QueueTest do
       assert Store.get(@public_bucket, "#{test}/index.html") == "1.0.0"
     end
 
+    test "remove both versioned and unversion when package is missing", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn repo, package ->
+        assert repo == "hexpm"
+        assert package == "#{test}"
+
+        nil
+      end)
+
+      Store.put(@public_bucket, "#{test}/1.0.0/index.html", "1.0.0")
+      Store.put(@public_bucket, "#{test}/index.html", "1.0.0")
+
+      key = "docs/#{test}-1.0.0.tar.gz"
+      Consumer.handle_message(delete_message(key))
+
+      assert Store.list(@public_bucket, "#{test}/") == []
+    end
+
     test "update sitemap", %{test: test} do
       Mox.expect(HexpmMock, :get_package, fn _repo, _package ->
         %{"releases" => []}

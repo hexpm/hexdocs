@@ -29,12 +29,15 @@ defmodule Hexdocs.Hexpm.Impl do
   def get_package(repo, package) do
     key = Application.get_env(:hexdocs, :hexpm_secret)
 
-    {:ok, 200, _headers, body} =
+    result =
       Hexdocs.HTTP.retry("hexpm", fn ->
         Hexdocs.HTTP.get(url("/api/repos/#{repo}/packages/#{package}"), headers(key))
       end)
 
-    Jason.decode!(body)
+    case result do
+      {:ok, 200, _headers, body} -> Jason.decode!(body)
+      {:ok, 404, _headers, _body} -> nil
+    end
   end
 
   def hexdocs_sitemap() do

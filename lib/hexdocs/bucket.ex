@@ -49,6 +49,10 @@ defmodule Hexdocs.Bucket do
     end
   end
 
+  defp latest_version?(_version, []) do
+    true
+  end
+
   defp latest_version?(version, all_versions) do
     pre_release? = version.pre != []
     first_release? = all_versions == []
