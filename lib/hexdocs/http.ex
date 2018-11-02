@@ -1,5 +1,5 @@
 defmodule Hexdocs.HTTP do
-  @max_retry_times 3
+  @max_retry_times 5
   @base_sleep_time 100
 
   require Logger
@@ -64,19 +64,26 @@ defmodule Hexdocs.HTTP do
 
   defp retry(fun, service, times) do
     case fun.() do
-      {:error, reason} ->
-        Logger.warn("#{service} API ERROR: #{inspect(reason)}")
+      {:ok, status, _headers, _body} when status in 500..599 ->
+        do_retry(fun, service, times, "status #{status}")
 
-        if times + 1 < @max_retry_times do
-          sleep = trunc(:math.pow(3, times) * @base_sleep_time)
-          :timer.sleep(sleep)
-          retry(fun, service, times + 1)
-        else
-          {:error, reason}
-        end
+      {:error, reason} ->
+        do_retry(fun, service, times, reason)
 
       result ->
         result
+    end
+  end
+
+  defp do_retry(fun, service, times, reason) do
+    Logger.warn("#{service} API ERROR: #{inspect(reason)}")
+
+    if times + 1 < @max_retry_times do
+      sleep = trunc(:math.pow(3, times) * @base_sleep_time)
+      :timer.sleep(sleep)
+      retry(fun, service, times + 1)
+    else
+      {:error, reason}
     end
   end
 end
