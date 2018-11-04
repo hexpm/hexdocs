@@ -1,4 +1,6 @@
 defmodule Hexdocs.Bucket do
+  require Logger
+
   def upload_sitemap(sitemap) do
     opts = [
       content_type: "text/xml",
@@ -7,7 +9,7 @@ defmodule Hexdocs.Bucket do
     ]
 
     Hexdocs.Store.put(:docs_public_bucket, "sitemap.xml", sitemap, opts)
-    Hexdocs.CDN.purge_key(:fastly_hexdocs, "sitemap")
+    purge(:fastly_hexdocs, "sitemap")
   end
 
   def upload(repository, package, version, all_versions, files) do
@@ -123,7 +125,7 @@ defmodule Hexdocs.Bucket do
     end)
     |> Task.async_stream(
       fn {bucket, key, data, opts} ->
-        Hexdocs.Store.put(bucket, key, data, opts)
+        put(bucket, key, data, opts)
       end,
       max_concurrency: 10,
       timeout: 10_000
@@ -216,12 +218,12 @@ defmodule Hexdocs.Bucket do
 
   defp purge_versioned_docspage(repository, package, version) do
     key = docspage_versioned_cdn_key(repository, package, version)
-    Hexdocs.CDN.purge_key(:fastly_hexdocs, key)
+    purge(:fastly_hexdocs, key)
   end
 
   defp purge_unversioned_docspage(repository, package) do
     key = docspage_unversioned_cdn_key(repository, package)
-    Hexdocs.CDN.purge_key(:fastly_hexdocs, key)
+    purge(:fastly_hexdocs, key)
   end
 
   defp docspage_versioned_cdn_key(repository, package, version) do
@@ -250,5 +252,15 @@ defmodule Hexdocs.Bucket do
     funs
     |> Task.async_stream(fn fun -> fun.() end)
     |> Stream.run()
+  end
+
+  defp purge(service, key) do
+    Logger.info("Purging #{service} #{key}")
+    Hexdocs.CDN.purge_key(:fastly_hexdocs, key)
+  end
+
+  defp put(bucket, key, data, opts) do
+    Logger.info("Uploading #{bucket} #{key}")
+    Hexdocs.Store.put(bucket, key, data, opts)
   end
 end
