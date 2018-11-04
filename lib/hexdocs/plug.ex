@@ -15,6 +15,7 @@ defmodule Hexdocs.Plug do
     use Plug.Debugger, otp_app: :my_app
   end
 
+  plug(Hexdocs.Plug.Status)
   plug(Hexdocs.Plug.Forwarded)
   plug(Plug.RequestId)
 
@@ -33,7 +34,6 @@ defmodule Hexdocs.Plug do
   end
 
   plug(Plug.Head)
-  plug(Hexdocs.Plug.Status)
 
   if Mix.env() == :prod do
     plug(Plug.SSL, rewrite_on: [:x_forwarded_proto])
