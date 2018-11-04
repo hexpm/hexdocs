@@ -101,7 +101,7 @@ defmodule Hexdocs.Queue do
 
     defp handle_record(%{"eventName" => "ObjectCreated:" <> _, "s3" => s3}) do
       key = s3["object"]["key"]
-      Logger.info("Object created #{key}")
+      Logger.info("OBJECT CREATED #{key}")
 
       case key_components(key) do
         {:ok, repository, package, version} ->
@@ -113,7 +113,7 @@ defmodule Hexdocs.Queue do
           all_versions = all_versions(repository, package)
           Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
           update_sitemap(repository)
-          Logger.info("Finished uploading docs #{key}")
+          Logger.info("FINISHED UPLOADING DOCS #{key}")
 
         :error ->
           :ok
@@ -122,7 +122,7 @@ defmodule Hexdocs.Queue do
 
     defp handle_record(%{"eventName" => "ObjectRemoved:" <> _, "s3" => s3}) do
       key = s3["object"]["key"]
-      Logger.info("Object deleted #{key}")
+      Logger.info("OBJECT DELETED #{key}")
 
       case key_components(key) do
         {:ok, repository, package, version} ->
@@ -130,7 +130,7 @@ defmodule Hexdocs.Queue do
           all_versions = all_versions(repository, package)
           Hexdocs.Bucket.delete(repository, package, version, all_versions)
           update_sitemap(repository)
-          Logger.info("Finished deleting docs #{key}")
+          Logger.info("FINISHED DELETING DOCS #{key}")
 
         :error ->
           :ok
@@ -172,12 +172,12 @@ defmodule Hexdocs.Queue do
     end
 
     defp update_sitemap("hexpm") do
-      Logger.info("Updating sitemap")
+      Logger.info("UPDATING SITEMAP")
 
       body = Hexdocs.Hexpm.hexdocs_sitemap()
       Hexdocs.Bucket.upload_sitemap(body)
 
-      Logger.info("Updated sitemap")
+      Logger.info("UPDATED SITEMAP")
     end
 
     defp update_sitemap(_repository) do
