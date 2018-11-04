@@ -30,6 +30,7 @@ defmodule Hexdocs.MixProject do
       {:goth, "~> 0.9.0"},
       {:hackney, "~> 1.13"},
       {:jason, "~> 1.1"},
+      {:logster, "~> 0.9.0"},
       {:mox, "~> 0.4.0"},
       {:plug_cowboy, "~> 2.0"},
       {:poison, "~> 3.1"},

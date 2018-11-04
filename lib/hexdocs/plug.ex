@@ -29,7 +29,7 @@ defmodule Hexdocs.Plug do
   plug(Plug.RequestId)
 
   if Mix.env() != :test do
-    plug(Plug.Logger)
+    plug(Logster.Plugs.Logger, excludes: [:params])
   end
 
   plug(Plug.Head)
