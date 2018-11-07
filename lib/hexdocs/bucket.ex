@@ -9,7 +9,7 @@ defmodule Hexdocs.Bucket do
     ]
 
     Hexdocs.Store.put(:docs_public_bucket, "sitemap.xml", sitemap, opts)
-    purge(:fastly_hexdocs, "sitemap")
+    purge(["sitemap"])
   end
 
   def upload(repository, package, version, all_versions, files) do
@@ -192,38 +192,22 @@ defmodule Hexdocs.Bucket do
   defp repository_path(repository, path), do: Path.join(repository, path)
 
   defp purge_hexdocs_cache("hexpm", package, versions, :both) do
-    versions
-    |> Enum.map(fn version ->
-      fn -> purge_versioned_docspage("hexpm", package, version) end
-    end)
-    |> Kernel.++([fn -> purge_unversioned_docspage("hexpm", package) end])
-    |> run_async_stream()
+    keys = Enum.map(versions, &docspage_versioned_cdn_key("hexpm", package, &1))
+    purge([docspage_unversioned_cdn_key("hexpm", package)] ++ keys)
   end
 
   defp purge_hexdocs_cache("hexpm", package, versions, :versioned) do
     versions
-    |> Enum.map(fn version ->
-      fn -> purge_versioned_docspage("hexpm", package, version) end
-    end)
-    |> run_async_stream()
+    |> Enum.map(&docspage_versioned_cdn_key("hexpm", package, &1))
+    |> purge()
   end
 
   defp purge_hexdocs_cache("hexpm", package, _versions, :unversioned) do
-    purge_unversioned_docspage("hexpm", package)
+    purge([docspage_unversioned_cdn_key("hexpm", package)])
   end
 
   defp purge_hexdocs_cache(_repository, _package, _version, _publish_unversioned?) do
     :ok
-  end
-
-  defp purge_versioned_docspage(repository, package, version) do
-    key = docspage_versioned_cdn_key(repository, package, version)
-    purge(:fastly_hexdocs, key)
-  end
-
-  defp purge_unversioned_docspage(repository, package) do
-    key = docspage_unversioned_cdn_key(repository, package)
-    purge(:fastly_hexdocs, key)
   end
 
   defp docspage_versioned_cdn_key(repository, package, version) do
@@ -240,23 +224,9 @@ defmodule Hexdocs.Bucket do
   defp upload_type(true = _latest_version?), do: :both
   defp upload_type(false = _latest_version?), do: :versioned
 
-  defp run_async_stream([]) do
-    :ok
-  end
-
-  defp run_async_stream([fun]) do
-    fun.()
-  end
-
-  defp run_async_stream(funs) do
-    funs
-    |> Task.async_stream(fn fun -> fun.() end)
-    |> Stream.run()
-  end
-
-  defp purge(service, key) do
-    Logger.info("Purging #{service} #{key}")
-    Hexdocs.CDN.purge_key(:fastly_hexdocs, key)
+  defp purge(keys) do
+    Logger.info("Purging fastly_hexdocs #{Enum.join(keys, " ")}")
+    Hexdocs.CDN.purge_key(:fastly_hexdocs, keys)
   end
 
   defp put(bucket, key, data, opts) do
