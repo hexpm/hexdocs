@@ -69,7 +69,7 @@ defmodule Hexdocs.Queue do
     use GenStage
     require Logger
 
-    @elixir_apps ~w(eex elixir ex_unit iex logger mix)
+    @ignore_packages ~w(eex elixir ex_unit iex logger mix hex)
 
     def start_link(id, opts) do
       GenStage.start_link(__MODULE__, opts, name: id)
@@ -145,7 +145,7 @@ defmodule Hexdocs.Queue do
 
         ["docs", file] ->
           case filename_to_release(file) do
-            {package, _version} when package in @elixir_apps -> :error
+            {package, _version} when package in @ignore_packages -> :error
             {package, version} -> {:ok, "hexpm", package, version}
           end
 
