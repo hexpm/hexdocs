@@ -33,7 +33,6 @@ defmodule Hexdocs.MixProject do
       {:logster, "~> 0.9.0"},
       {:mox, "~> 0.4.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:poison, "~> 3.1"},
       {:rollbax, "~> 0.9.2"},
       {:sweet_xml, "~> 0.6.5"}
     ]
