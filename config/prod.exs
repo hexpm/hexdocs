@@ -42,6 +42,6 @@ config :rollbax,
 
 config :sasl, sasl_error_logger: false
 
-config :logger, :console, format: "$time $metadata[$level] $message\n"
+config :logger, :console, format: "$metadata[$level] $message\n"
 
 config :logger, level: :info
