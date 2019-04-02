@@ -30,6 +30,7 @@ defmodule Hexdocs.Bucket do
 
     delete_old_docs(repository, package, [version], paths, upload_type)
     purge_hexdocs_cache(repository, package, [version], upload_type)
+    purge(docspage_unversioned_cdn_key(repository, package) <> "/docs_config.js")
   end
 
   # TODO: don't include retired versions?
