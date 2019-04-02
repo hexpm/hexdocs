@@ -14,27 +14,20 @@ defmodule Hexdocs.Bucket do
 
   def upload(repository, package, version, all_versions, files) do
     latest_version? = latest_version?(version, all_versions)
+    docs_config = build_docs_config(repository, package, version, all_versions)
     upload_type = upload_type(latest_version?)
     upload_files = list_upload_files(repository, package, version, files, upload_type)
+    upload_files = [docs_config | upload_files]
     paths = MapSet.new(upload_files, &elem(&1, 0))
 
     upload_new_files(upload_files)
-
-    docs_config_js = build_docs_config_js(repository, package, version, all_versions)
-
-    [docs_config_js_upload_file] =
-      list_upload_files(repository, package, version, [docs_config_js], :unversioned)
-
-    upload_new_files([docs_config_js_upload_file])
-    paths = MapSet.put(paths, elem(docs_config_js_upload_file, 0))
-
     delete_old_docs(repository, package, [version], paths, upload_type)
     purge_hexdocs_cache(repository, package, [version], upload_type)
-    purge(docspage_unversioned_cdn_key(repository, package) <> "/docs_config.js")
+    purge([docs_config_cdn_key(repository, package)])
   end
 
   # TODO: don't include retired versions?
-  defp build_docs_config_js(repository, package, version, all_versions) do
+  defp build_docs_config(repository, package, version, all_versions) do
     versions =
       if version in all_versions do
         all_versions
@@ -50,8 +43,16 @@ defmodule Hexdocs.Bucket do
         }
       end
 
-    content = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
-    {"docs_config.js", content}
+    path = "docs_config.js"
+    unversioned_path = repository_path(repository, Path.join([package, path]))
+    cdn_key = docs_config_cdn_key(repository, package)
+    data = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
+    public? = repository == "hexpm"
+    {unversioned_path, cdn_key, data, public?}
+  end
+
+  defp docs_config_cdn_key(repository, package) do
+    "docspage/#{repository_cdn_key(repository)}#{package}/docs_config.js"
   end
 
   defp hexdocs_url(repository, package, version) do
