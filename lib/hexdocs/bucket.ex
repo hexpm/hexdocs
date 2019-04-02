@@ -49,8 +49,8 @@ defmodule Hexdocs.Bucket do
         }
       end
 
-    {"docs_config.js",
-     IO.iodata_to_binary(["var versionNodes = ", Jason.encode_to_iodata!(list)])}
+    content = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
+    {"docs_config.js", content}
   end
 
   # TODO: don't hardcode https://hexdocs.pm, it should work on staging.hexdocs.pm too!
