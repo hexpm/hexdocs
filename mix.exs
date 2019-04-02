@@ -27,13 +27,12 @@ defmodule Hexdocs.MixProject do
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws_sqs, "~> 2.0"},
       {:gen_stage, "~> 0.14.0"},
-      {:goth, "~> 0.9.0"},
+      {:goth, "~> 1.0"},
       {:hackney, "~> 1.13"},
       {:jason, "~> 1.1"},
       {:logster, "~> 0.9.0"},
       {:mox, "~> 0.4.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:poison, "~> 3.1"},
       {:rollbax, "~> 0.9.2"},
       {:sweet_xml, "~> 0.6.5"}
     ]
