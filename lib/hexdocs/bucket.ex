@@ -54,7 +54,7 @@ defmodule Hexdocs.Bucket do
   end
 
   defp hexdocs_url(repository, package, version) do
-    host = System.get_env("HEXDOCS_DOCS_PUBLIC_BUCKET") || "staging.hexdocs.pm"
+    host = Application.get_env(:hexdocs, :host)
     scheme = if host == "hexdocs.pm", do: "https", else: "http"
     subdomain = if repository == "hexpm", do: "", else: "#{repository}."
     "#{scheme}://#{subdomain}#{host}/#{package}/#{version}"
