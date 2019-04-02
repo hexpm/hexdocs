@@ -53,11 +53,12 @@ defmodule Hexdocs.Bucket do
     {"docs_config.js", content}
   end
 
-  # TODO: don't hardcode https://hexdocs.pm, it should work on staging.hexdocs.pm too!
-  defp hexdocs_url("hexpm", package, version), do: "https://hexdocs.pm/#{package}/#{version}"
-
-  defp hexdocs_url(repository, package, version),
-    do: "https://#{repository}.hexdocs.pm/#{package}/#{version}"
+  defp hexdocs_url(repository, package, version) do
+    host = System.get_env("HEXDOCS_DOCS_PUBLIC_BUCKET") || "staging.hexdocs.pm"
+    scheme = if host == "hexdocs.pm", do: "https", else: "http"
+    subdomain = if repository == "hexpm", do: "", else: "#{repository}."
+    "#{scheme}://#{subdomain}#{host}/#{package}/#{version}"
+  end
 
   def delete(repository, package, version, all_versions) do
     deleting_latest_version? = latest_version?(version, all_versions)
