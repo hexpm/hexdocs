@@ -118,7 +118,6 @@ defmodule Hexdocs.Queue do
           {:ok, files} = Hexdocs.Tar.unpack(body)
           version = Version.parse!(version)
           all_versions = all_versions(repository, package)
-          files = [build_docs_config_js(repository, package, version, all_versions) | files]
           Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
           update_sitemap(repository)
           Logger.info("FINISHED UPLOADING DOCS #{key}")
@@ -178,31 +177,6 @@ defmodule Hexdocs.Queue do
         []
       end
     end
-
-    # TODO: don't include retired versions
-    defp build_docs_config_js(repository, package, version, all_versions) do
-      versions =
-        if version in all_versions do
-          all_versions
-        else
-          Enum.sort([version | all_versions], &(Version.compare(&1, &2) == :gt))
-        end
-
-      list =
-        for version <- versions do
-          %{
-            version: to_string(version),
-            url: hexdocs_url(repository, package, version)
-          }
-        end
-
-      {"docs_config.js", ["var versionNodes = ", Jason.encode_to_iodata!(list)]}
-    end
-
-    defp hexdocs_url("hexpm", package, version), do: "https://hexdocs.pm/#{package}/#{version}"
-
-    defp hexdocs_url(repository, package, version),
-      do: "https://#{repository}.hexdocs.pm/#{package}/#{version}"
 
     defp update_sitemap("hexpm") do
       Logger.info("UPDATING SITEMAP")

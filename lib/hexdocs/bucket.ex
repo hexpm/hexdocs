@@ -19,9 +19,45 @@ defmodule Hexdocs.Bucket do
     paths = MapSet.new(upload_files, &elem(&1, 0))
 
     upload_new_files(upload_files)
+
+    docs_config_js = build_docs_config_js(repository, package, version, all_versions)
+
+    [docs_config_js_upload_file] =
+      list_upload_files(repository, package, version, [docs_config_js], :unversioned)
+
+    upload_new_files([docs_config_js_upload_file])
+    paths = MapSet.put(paths, elem(docs_config_js_upload_file, 0))
+
     delete_old_docs(repository, package, [version], paths, upload_type)
     purge_hexdocs_cache(repository, package, [version], upload_type)
   end
+
+  # TODO: don't include retired versions?
+  defp build_docs_config_js(repository, package, version, all_versions) do
+    versions =
+      if version in all_versions do
+        all_versions
+      else
+        Enum.sort([version | all_versions], &(Version.compare(&1, &2) == :gt))
+      end
+
+    list =
+      for version <- versions do
+        %{
+          version: to_string(version),
+          url: hexdocs_url(repository, package, version)
+        }
+      end
+
+    {"docs_config.js",
+     IO.iodata_to_binary(["var versionNodes = ", Jason.encode_to_iodata!(list)])}
+  end
+
+  # TODO: don't hardcode https://hexdocs.pm, it should work on staging.hexdocs.pm too!
+  defp hexdocs_url("hexpm", package, version), do: "https://hexdocs.pm/#{package}/#{version}"
+
+  defp hexdocs_url(repository, package, version),
+    do: "https://#{repository}.hexdocs.pm/#{package}/#{version}"
 
   def delete(repository, package, version, all_versions) do
     deleting_latest_version? = latest_version?(version, all_versions)
