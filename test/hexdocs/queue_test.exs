@@ -8,7 +8,7 @@ defmodule Hexdocs.QueueTest do
   @public_bucket :docs_public_bucket
 
   setup do
-    Mox.expect(HexpmMock, :hexdocs_sitemap, fn  ->
+    Mox.expect(HexpmMock, :hexdocs_sitemap, fn ->
       "this is the sitemap"
     end)
 
@@ -31,9 +31,11 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 2
+      assert length(files) == 4
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "contents"
+      assert Store.get(@bucket, "queuetest/#{test}/docs_config.js")
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "contents"
+      assert Store.get(@bucket, "queuetest/#{test}/1.0.0/docs_config.js")
     end
 
     test "upload public files", %{test: test} do
@@ -51,9 +53,11 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@public_bucket, "#{test}/")
-      assert length(files) == 2
+      assert length(files) == 4
       assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
+      assert Store.get(@public_bucket, "#{test}/docs_config.js")
       assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "contents"
+      assert Store.get(@public_bucket, "#{test}/1.0.0/docs_config.js")
     end
 
     test "overwrite main docs with newer versions", %{test: test} do
@@ -73,10 +77,12 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 3
+      assert length(files) == 5
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/2.0.0/docs_config.js")
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "2.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/docs_config.js")
     end
 
     test "dont overwrite main docs with older versions", %{test: test} do
@@ -96,8 +102,9 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 3
+      assert length(files) == 4
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/1.0.0/docs_config.js")
       assert Store.get(@bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "2.0.0"
     end
@@ -119,14 +126,40 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 2
+      assert length(files) == 4
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/1.0.0/docs_config.js")
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "1.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/docs_config.js")
     end
 
     test "do nothing for key that does not match", %{test: test} do
       Consumer.handle_message(put_message("queuetest/packages/#{test}"))
       assert Store.list(@bucket, "queuetest/#{test}/") == []
+    end
+
+    test "upload docs_config.js", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn repo, package ->
+        assert repo == "queuetest"
+        assert package == "#{test}"
+
+        %{
+          "releases" => [
+            %{"version" => "0.9.0", "has_docs" => false},
+            %{"version" => "1.0.0", "has_docs" => true}
+          ]
+        }
+      end)
+
+      key = "repos/queuetest/docs/#{test}-2.0.0.tar.gz"
+      tar = create_tar([{"index.html", "2.0.0"}])
+      Store.put(:repo_bucket, key, tar)
+      Consumer.handle_message(put_message(key))
+
+      docs_config_js = Store.get(@bucket, "queuetest/#{test}/2.0.0/docs_config.js")
+      assert docs_config_js =~ "1.0.0"
+      assert docs_config_js =~ "2.0.0"
+      refute docs_config_js =~ "0.9.0"
     end
 
     test "update sitemap", %{test: test} do
