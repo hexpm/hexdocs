@@ -44,7 +44,7 @@ defmodule Hexdocs.Bucket do
     list =
       for version <- versions do
         %{
-          version: to_string(version),
+          version: "v#{version}",
           url: hexdocs_url(repository, package, version)
         }
       end
