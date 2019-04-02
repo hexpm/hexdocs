@@ -7,6 +7,7 @@ defmodule Hexdocs.Queue do
     use GenStage
 
     @receive_opts [max_number_of_message: 10, wait_time_seconds: 10]
+    @task_timeout 60_000
 
     def start_link(id) do
       GenStage.start_link(__MODULE__, [], name: id)
@@ -46,10 +47,7 @@ defmodule Hexdocs.Queue do
 
     defp pull(state) do
       opts = Keyword.update!(@receive_opts, :max_number_of_message, &min(&1, state.demand))
-
-      %{status_code: 200, body: body} =
-        ExAws.SQS.receive_message(Hexdocs.Queue.name(), opts)
-        |> ExAws.request!()
+      %{status_code: 200, body: body} = request(Hexdocs.Queue.name(), opts)
 
       queue = Enum.reduce(body.messages, state.queue, &:queue.in/2)
       dispatch(%{state | queue: queue}, [])
@@ -62,6 +60,15 @@ defmodule Hexdocs.Queue do
 
     defp send_pull(%{pulling: true} = state) do
       state
+    end
+
+    # Do this to avoid leaking :ssl_closed messages from hackney
+    defp request(name, opts) do
+      Task.async(fn ->
+        ExAws.SQS.receive_message(name, opts)
+        |> ExAws.request!()
+      end)
+      |> Task.await(@task_timeout)
     end
   end
 
