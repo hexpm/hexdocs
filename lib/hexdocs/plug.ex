@@ -2,7 +2,6 @@ defmodule Hexdocs.Plug do
   use Plug.Builder
   use Plug.ErrorHandler
   use Hexdocs.Plug.Rollbax
-  alias Plug.Conn
   require Logger
 
   @signing_salt Application.get_env(:hexdocs, :session_signing_salt)
@@ -55,10 +54,6 @@ defmodule Hexdocs.Plug do
 
   defp put_secret_key_base(conn, _opts) do
     put_in(conn.secret_key_base, Application.get_env(:hexdocs, :session_key_base))
-  end
-
-  defp run(%Conn{path_info: ["status"]} = conn, _opts) do
-    send_resp(conn, 200, "")
   end
 
   defp run(conn, _opts) do
@@ -156,7 +151,7 @@ defmodule Hexdocs.Plug do
   end
 
   defp serve_page(conn, organization) do
-    uri = URI.parse(conn.request_path)
+    uri = rewrite_uri(conn)
     bucket_path = organization <> uri.path
 
     case fetch_page(bucket_path, uri.path) do
@@ -175,6 +170,15 @@ defmodule Hexdocs.Plug do
       {:redirect, path} ->
         redirect(conn, path)
     end
+  end
+
+  defp rewrite_uri(conn) do
+    uri = URI.parse(conn.request_path)
+    Map.update!(uri, :path, &rewrite_path/1)
+  end
+
+  defp rewrite_path(path) do
+    String.replace(path, ~r"^/([^/]*)/[^/]*/docs_config.js$", "/\\1/docs_config.js")
   end
 
   defp fetch_page(bucket_path, path) do

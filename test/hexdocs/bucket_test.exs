@@ -96,4 +96,36 @@ defmodule Hexdocs.BucketTest do
     assert Store.get(@bucket, "buckettest/#{test}/2.0.0-beta/index.html") == "2.0.0-beta"
     assert Store.get(@bucket, "buckettest/#{test}/index.html") == "2.0.0-beta"
   end
+
+  test "upload docs_config.js", %{test: test} do
+    version = "1.0.0"
+    all_versions = []
+
+    Bucket.upload("buckettest", "#{test}", Version.parse!(version), all_versions, [
+      {"index.html", version}
+    ])
+
+    assert Store.get(@bucket, "buckettest/#{test}/docs_config.js") =~ "1.0.0"
+
+    version = "2.0.0"
+    all_versions = [Version.parse!("1.0.0")]
+
+    Bucket.upload("buckettest", "#{test}", Version.parse!(version), all_versions, [
+      {"index.html", version}
+    ])
+
+    assert Store.get(@bucket, "buckettest/#{test}/docs_config.js") =~ "1.0.0"
+    assert Store.get(@bucket, "buckettest/#{test}/docs_config.js") =~ "2.0.0"
+
+    version = "1.1.0"
+    all_versions = [Version.parse!("1.0.0"), Version.parse!("2.0.0")]
+
+    Bucket.upload("buckettest", "#{test}", Version.parse!(version), all_versions, [
+      {"index.html", version}
+    ])
+
+    assert Store.get(@bucket, "buckettest/#{test}/docs_config.js") =~ "1.0.0"
+    assert Store.get(@bucket, "buckettest/#{test}/docs_config.js") =~ "1.1.0"
+    assert Store.get(@bucket, "buckettest/#{test}/docs_config.js") =~ "2.0.0"
+  end
 end

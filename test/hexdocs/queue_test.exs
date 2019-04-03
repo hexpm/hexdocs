@@ -8,7 +8,7 @@ defmodule Hexdocs.QueueTest do
   @public_bucket :docs_public_bucket
 
   setup do
-    Mox.expect(HexpmMock, :hexdocs_sitemap, fn  ->
+    Mox.expect(HexpmMock, :hexdocs_sitemap, fn ->
       "this is the sitemap"
     end)
 
@@ -31,8 +31,9 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 2
+      assert length(files) == 3
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "contents"
+      assert Store.get(@bucket, "queuetest/#{test}/docs_config.js")
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "contents"
     end
 
@@ -51,8 +52,9 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@public_bucket, "#{test}/")
-      assert length(files) == 2
+      assert length(files) == 3
       assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
+      assert Store.get(@public_bucket, "#{test}/docs_config.js")
       assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "contents"
     end
 
@@ -73,10 +75,11 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 3
+      assert length(files) == 4
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "2.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/docs_config.js")
     end
 
     test "dont overwrite main docs with older versions", %{test: test} do
@@ -96,10 +99,11 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 3
+      assert length(files) == 4
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/2.0.0/index.html") == "2.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "2.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/docs_config.js")
     end
 
     test "overwrite main docs with older versions if has_docs is false", %{test: test} do
@@ -119,9 +123,10 @@ defmodule Hexdocs.QueueTest do
       Consumer.handle_message(put_message(key))
 
       files = Store.list(@bucket, "queuetest/#{test}/")
-      assert length(files) == 2
+      assert length(files) == 3
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "1.0.0"
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "1.0.0"
+      assert Store.get(@bucket, "queuetest/#{test}/docs_config.js")
     end
 
     test "do nothing for key that does not match", %{test: test} do

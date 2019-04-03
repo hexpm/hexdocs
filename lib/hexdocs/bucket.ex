@@ -14,13 +14,51 @@ defmodule Hexdocs.Bucket do
 
   def upload(repository, package, version, all_versions, files) do
     latest_version? = latest_version?(version, all_versions)
+    docs_config = build_docs_config(repository, package, version, all_versions)
     upload_type = upload_type(latest_version?)
     upload_files = list_upload_files(repository, package, version, files, upload_type)
+    upload_files = [docs_config | upload_files]
     paths = MapSet.new(upload_files, &elem(&1, 0))
 
     upload_new_files(upload_files)
     delete_old_docs(repository, package, [version], paths, upload_type)
     purge_hexdocs_cache(repository, package, [version], upload_type)
+    purge([docs_config_cdn_key(repository, package)])
+  end
+
+  # TODO: don't include retired versions?
+  defp build_docs_config(repository, package, version, all_versions) do
+    versions =
+      if version in all_versions do
+        all_versions
+      else
+        Enum.sort([version | all_versions], &(Version.compare(&1, &2) == :gt))
+      end
+
+    list =
+      for version <- versions do
+        %{
+          version: "v#{version}",
+          url: hexdocs_url(repository, package, version)
+        }
+      end
+
+    path = "docs_config.js"
+    unversioned_path = repository_path(repository, Path.join([package, path]))
+    cdn_key = docs_config_cdn_key(repository, package)
+    data = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
+    {unversioned_path, cdn_key, data, public?(repository)}
+  end
+
+  defp docs_config_cdn_key(repository, package) do
+    "docspage/#{repository_cdn_key(repository)}#{package}/docs_config.js"
+  end
+
+  defp hexdocs_url(repository, package, version) do
+    host = Application.get_env(:hexdocs, :host)
+    scheme = if host == "hexdocs.pm", do: "https", else: "http"
+    subdomain = if repository == "hexpm", do: "", else: "#{repository}."
+    "#{scheme}://#{subdomain}#{host}/#{package}/#{version}"
   end
 
   def delete(repository, package, version, all_versions) do
@@ -92,14 +130,13 @@ defmodule Hexdocs.Bucket do
 
   defp list_upload_files(repository, package, version, files, upload_type) do
     Enum.flat_map(files, fn {path, data} ->
-      public? = repository == "hexpm"
       versioned_path = repository_path(repository, Path.join([package, to_string(version), path]))
       cdn_key = docspage_versioned_cdn_key(repository, package, version)
-      versioned = {versioned_path, cdn_key, data, public?}
+      versioned = {versioned_path, cdn_key, data, public?(repository)}
 
       unversioned_path = repository_path(repository, Path.join([package, path]))
       cdn_key = docspage_unversioned_cdn_key(repository, package)
-      unversioned = {unversioned_path, cdn_key, data, public?}
+      unversioned = {unversioned_path, cdn_key, data, public?(repository)}
 
       case upload_type do
         :both -> [versioned, unversioned]
@@ -134,8 +171,7 @@ defmodule Hexdocs.Bucket do
   end
 
   defp delete_old_docs(repository, package, versions, paths, upload_type) do
-    public? = repository == "hexpm"
-    bucket = bucket(public?)
+    bucket = bucket(public?(repository))
     # Add "/" so that we don't get prefix matches, for example phoenix
     # would match phoenix_html
     existing_keys = Hexdocs.Store.list(bucket, repository_path(repository, "#{package}/"))
@@ -223,6 +259,9 @@ defmodule Hexdocs.Bucket do
 
   defp upload_type(true = _latest_version?), do: :both
   defp upload_type(false = _latest_version?), do: :versioned
+
+  defp public?("hexpm"), do: true
+  defp public?(_), do: false
 
   defp purge(keys) do
     Logger.info("Purging fastly_hexdocs #{Enum.join(keys, " ")}")
