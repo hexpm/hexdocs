@@ -47,8 +47,7 @@ defmodule Hexdocs.Bucket do
     unversioned_path = repository_path(repository, Path.join([package, path]))
     cdn_key = docs_config_cdn_key(repository, package)
     data = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
-    public? = repository == "hexpm"
-    {unversioned_path, cdn_key, data, public?}
+    {unversioned_path, cdn_key, data, public?(repository)}
   end
 
   defp docs_config_cdn_key(repository, package) do
@@ -131,14 +130,13 @@ defmodule Hexdocs.Bucket do
 
   defp list_upload_files(repository, package, version, files, upload_type) do
     Enum.flat_map(files, fn {path, data} ->
-      public? = repository == "hexpm"
       versioned_path = repository_path(repository, Path.join([package, to_string(version), path]))
       cdn_key = docspage_versioned_cdn_key(repository, package, version)
-      versioned = {versioned_path, cdn_key, data, public?}
+      versioned = {versioned_path, cdn_key, data, public?(repository)}
 
       unversioned_path = repository_path(repository, Path.join([package, path]))
       cdn_key = docspage_unversioned_cdn_key(repository, package)
-      unversioned = {unversioned_path, cdn_key, data, public?}
+      unversioned = {unversioned_path, cdn_key, data, public?(repository)}
 
       case upload_type do
         :both -> [versioned, unversioned]
@@ -173,8 +171,7 @@ defmodule Hexdocs.Bucket do
   end
 
   defp delete_old_docs(repository, package, versions, paths, upload_type) do
-    public? = repository == "hexpm"
-    bucket = bucket(public?)
+    bucket = bucket(public?(repository))
     # Add "/" so that we don't get prefix matches, for example phoenix
     # would match phoenix_html
     existing_keys = Hexdocs.Store.list(bucket, repository_path(repository, "#{package}/"))
@@ -262,6 +259,9 @@ defmodule Hexdocs.Bucket do
 
   defp upload_type(true = _latest_version?), do: :both
   defp upload_type(false = _latest_version?), do: :versioned
+
+  defp public?("hexpm"), do: true
+  defp public?(_), do: false
 
   defp purge(keys) do
     Logger.info("Purging fastly_hexdocs #{Enum.join(keys, " ")}")
