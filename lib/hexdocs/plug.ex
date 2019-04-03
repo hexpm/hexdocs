@@ -151,7 +151,7 @@ defmodule Hexdocs.Plug do
   end
 
   defp serve_page(conn, organization) do
-    uri = URI.parse(conn.request_path)
+    uri = rewrite_uri(conn)
     bucket_path = organization <> uri.path
 
     case fetch_page(bucket_path, uri.path) do
@@ -170,6 +170,15 @@ defmodule Hexdocs.Plug do
       {:redirect, path} ->
         redirect(conn, path)
     end
+  end
+
+  defp rewrite_uri(conn) do
+    uri = URI.parse(conn.request_path)
+    Map.update!(uri, :path, &rewrite_path/1)
+  end
+
+  defp rewrite_path(path) do
+    String.replace(path, ~r"^/([^/]*)/[^/]*/docs_config.js$", "/\\1/docs_config.js")
   end
 
   defp fetch_page(bucket_path, path) do
