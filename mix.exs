@@ -14,7 +14,7 @@ defmodule Hexdocs.MixProject do
   # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:logger, :runtime_tools, :plug_crypto],
+      extra_applications: [:eex, :logger, :runtime_tools, :plug_crypto],
       mod: {Hexdocs.Application, []}
     ]
   end
