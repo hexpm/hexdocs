@@ -11,15 +11,13 @@ defmodule Hexdocs.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
-      extra_applications: [:eex, :logger, :runtime_tools, :plug_crypto],
+      extra_applications: [:eex, :logger, :runtime_tools],
       mod: {Hexdocs.Application, []}
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:distillery, "~> 2.0", runtime: false},
