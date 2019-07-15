@@ -2,12 +2,13 @@ defmodule Hexdocs.QueueTest do
   use ExUnit.Case, async: true
   import Hexdocs.TestHelper
   alias Hexdocs.{HexpmMock, Store}
-  alias Hexdocs.Queue.Consumer
 
   @bucket :docs_private_bucket
   @public_bucket :docs_public_bucket
 
   setup do
+    Mox.set_mox_global()
+
     Mox.expect(HexpmMock, :hexdocs_sitemap, fn ->
       "this is the sitemap"
     end)
@@ -28,7 +29,8 @@ defmodule Hexdocs.QueueTest do
       tar = create_tar([{"index.html", "contents"}])
       Store.put(:repo_bucket, key, tar)
 
-      Consumer.handle_message(put_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
       assert length(files) == 3
@@ -49,7 +51,8 @@ defmodule Hexdocs.QueueTest do
       tar = create_tar([{"index.html", "contents"}])
       Store.put(:repo_bucket, key, tar)
 
-      Consumer.handle_message(put_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@public_bucket, "#{test}/")
       assert length(files) == 3
@@ -72,7 +75,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
       Store.put(@bucket, "queuetest/#{test}/index.html", "1.0.0")
 
-      Consumer.handle_message(put_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
       assert length(files) == 4
@@ -96,7 +100,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
       Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
-      Consumer.handle_message(put_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
       assert length(files) == 4
@@ -120,7 +125,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "garbage")
       Store.put(@bucket, "queuetest/#{test}/index.html", "garbage")
 
-      Consumer.handle_message(put_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
       assert length(files) == 3
@@ -130,7 +136,8 @@ defmodule Hexdocs.QueueTest do
     end
 
     test "do nothing for key that does not match", %{test: test} do
-      Consumer.handle_message(put_message("queuetest/packages/#{test}"))
+      ref = Broadway.test_messages(Hexdocs.Queue, [put_message("queuetest/packages/#{test}")])
+      assert_receive {:ack, ^ref, [_], []}
       assert Store.list(@bucket, "queuetest/#{test}/") == []
     end
 
@@ -142,7 +149,9 @@ defmodule Hexdocs.QueueTest do
       key = "docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "1.0.0"}])
       Store.put(:repo_bucket, key, tar)
-      Consumer.handle_message(put_message(key))
+
+      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
     end
@@ -161,7 +170,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/index.html", "1.0.0")
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      Consumer.handle_message(delete_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       assert Store.list(@bucket, "queuetest/#{test}/") == []
     end
@@ -184,7 +194,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      Consumer.handle_message(delete_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
       assert length(files) == 2
@@ -214,7 +225,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
       key = "repos/queuetest/docs/#{test}-2.0.0.tar.gz"
-      Consumer.handle_message(delete_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
       assert length(files) == 2
@@ -244,7 +256,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@public_bucket, "#{test}/index.html", "2.0.0")
 
       key = "docs/#{test}-2.0.0.tar.gz"
-      Consumer.handle_message(delete_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@public_bucket, "#{test}/")
       assert length(files) == 2
@@ -264,7 +277,8 @@ defmodule Hexdocs.QueueTest do
       Store.put(@public_bucket, "#{test}/index.html", "1.0.0")
 
       key = "docs/#{test}-1.0.0.tar.gz"
-      Consumer.handle_message(delete_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       assert Store.list(@public_bucket, "#{test}/") == []
     end
@@ -275,31 +289,32 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "docs/#{test}-1.0.0.tar.gz"
-      Consumer.handle_message(delete_message(key))
+      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      assert_receive {:ack, ^ref, [_], []}
 
       assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
     end
   end
 
   defp put_message(key) do
-    %{
+    Jason.encode!(%{
       "Records" => [
         %{
           "eventName" => "ObjectCreated:Put",
           "s3" => %{"object" => %{"key" => key}}
         }
       ]
-    }
+    })
   end
 
   defp delete_message(key) do
-    %{
+    Jason.encode!(%{
       "Records" => [
         %{
           "eventName" => "ObjectRemoved:Delete",
           "s3" => %{"object" => %{"key" => key}}
         }
       ]
-    }
+    })
   end
 end
