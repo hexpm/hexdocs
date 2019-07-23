@@ -16,6 +16,9 @@ defmodule Hexdocs.Queue do
           stages: 1
         ]
       ],
+      batchers: [
+        default: []
+      ],
       processors: [
         default: [stages: 1]
       ]
@@ -37,6 +40,11 @@ defmodule Hexdocs.Queue do
   def handle_message(%{data: %{"Records" => records}} = message) do
     Enum.each(records, &handle_record/1)
     message
+  end
+
+  @impl true
+  def handle_batch(_batcher, messages, _batch_info, _context) do
+    messages
   end
 
   defp handle_record(%{"eventName" => "ObjectCreated:" <> _, "s3" => s3}) do
