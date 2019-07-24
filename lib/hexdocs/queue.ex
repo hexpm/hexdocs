@@ -17,10 +17,14 @@ defmodule Hexdocs.Queue do
         ]
       ],
       batchers: [
-        default: []
+        default: [
+          stages: 1
+        ]
       ],
       processors: [
-        default: [stages: 1]
+        default: [
+          stages: 4
+        ]
       ]
     )
   end
