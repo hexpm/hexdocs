@@ -1,5 +1,7 @@
 # Hexdocs
 
+[![Build Status](https://travis-ci.org/hexpm/hexdocs.svg?branch=master)](https://travis-ci.org/hexpm/hexdocs)
+
 ## Installation
 
 If [available in Hex](https://hex.pm/docs/publish), the package can be installed
