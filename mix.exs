@@ -21,18 +21,19 @@ defmodule Hexdocs.MixProject do
   defp deps do
     [
       {:distillery, "~> 2.0", runtime: false},
+      {:broadway, "~> 0.3.0", github: "plataformatec/broadway", branch: "wm-batch-mode", override: true},
+      {:broadway_sqs, "~> 0.2.0"},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws_sqs, "~> 2.0"},
-      {:gen_stage, "~> 0.14.0"},
       {:goth, "~> 1.0"},
       {:hackney, "~> 1.13"},
       {:jason, "~> 1.1"},
       {:logster, "~> 0.9.0"},
-      {:mox, "~> 0.4.0"},
+      {:mox, "~> 0.4.0", only: :test},
       {:plug_cowboy, "~> 2.0"},
       {:rollbax, "~> 0.9.2"},
-      {:sweet_xml, "~> 0.6.5"}
+      {:sweet_xml, "~> 0.6.5"},
     ]
   end
 end
