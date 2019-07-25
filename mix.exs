@@ -33,7 +33,7 @@ defmodule Hexdocs.MixProject do
       {:mox, "~> 0.4.0", only: :test},
       {:plug_cowboy, "~> 2.0"},
       {:rollbax, "~> 0.9.2"},
-      {:sweet_xml, "~> 0.6.5"},
+      {:sweet_xml, "~> 0.6.5"}
     ]
   end
 end
