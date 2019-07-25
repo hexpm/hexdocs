@@ -21,7 +21,7 @@ defmodule Hexdocs.MixProject do
   defp deps do
     [
       {:distillery, "~> 2.0", runtime: false},
-      {:broadway, "~> 0.3.0", github: "plataformatec/broadway", branch: "wm-batch-mode", override: true},
+      {:broadway, "~> 0.3.0", github: "plataformatec/broadway", override: true},
       {:broadway_sqs, "~> 0.2.0"},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
