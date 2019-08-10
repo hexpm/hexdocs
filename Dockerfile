@@ -1,4 +1,4 @@
-FROM elixir:1.8.1-alpine as build
+FROM elixir:1.9.1-alpine as build
 
 # install build dependencies
 RUN apk add --update git
@@ -20,21 +20,24 @@ COPY config config
 RUN mix deps.get
 RUN mix deps.compile
 
-# build release
+# build project
 COPY priv priv
 COPY lib lib
 RUN mix compile
+
+# build release
 COPY rel rel
-RUN mix release --no-tar
+RUN mix release
 
 # prepare release image
 FROM alpine:3.9 AS app
 RUN apk add --update bash openssl
 
-RUN mkdir /app && chown -R nobody: /app
+RUN mkdir /app
 WORKDIR /app
-USER nobody
 
 COPY --from=build /app/_build/prod/rel/hexdocs ./
+RUN chown -R nobody: /app
+USER nobody
 
-ENV HOME=/app REPLACE_OS_VARS=true
+ENV HOME=/app

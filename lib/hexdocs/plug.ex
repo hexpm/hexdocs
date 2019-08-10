@@ -4,8 +4,6 @@ defmodule Hexdocs.Plug do
   use Hexdocs.Plug.Rollbax
   require Logger
 
-  @signing_salt Application.get_env(:hexdocs, :session_signing_salt)
-  @encryption_salt Application.get_env(:hexdocs, :session_encryption_salt)
   @key_html_fresh_time 60
   @key_asset_fresh_time 120
   @key_lifetime 60 * 60 * 24 * 29
@@ -42,8 +40,8 @@ defmodule Hexdocs.Plug do
   plug(Plug.Session,
     store: :cookie,
     key: "_hexdocs_key",
-    signing_salt: @signing_salt,
-    encryption_salt: @encryption_salt,
+    signing_salt: {Application, :get_env, [:hexdocs, :session_signing_salt]},
+    encryption_salt: {Application, :get_env, [:hexdocs, :session_encryption_salt]},
     max_age: 60 * 60 * 24 * 30
   )
 
