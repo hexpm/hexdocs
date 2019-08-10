@@ -7,6 +7,7 @@ defmodule Hexdocs.MixProject do
       version: "0.1.0",
       elixir: "~> 1.8",
       start_permanent: Mix.env() == :prod,
+      releases: releases(),
       deps: deps()
     ]
   end
@@ -20,8 +21,7 @@ defmodule Hexdocs.MixProject do
 
   defp deps do
     [
-      {:distillery, "~> 2.0", runtime: false},
-      {:broadway, "~> 0.3.0", github: "plataformatec/broadway", override: true},
+      {:broadway, "~> 0.4.0", github: "plataformatec/broadway", override: true},
       {:broadway_sqs, "~> 0.2.0"},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
@@ -29,11 +29,19 @@ defmodule Hexdocs.MixProject do
       {:goth, "~> 1.0"},
       {:hackney, "~> 1.13"},
       {:jason, "~> 1.1"},
-      {:logster, "~> 0.9.0"},
-      {:mox, "~> 0.4.0", only: :test},
+      {:logster, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:rollbax, "~> 0.9.2"},
-      {:sweet_xml, "~> 0.6.5"}
+      {:rollbax, "~> 0.11.0"},
+      {:sweet_xml, "~> 0.6.5"},
+      {:mox, "~> 0.5.0", only: :test}
+    ]
+  end
+
+  defp releases() do
+    [
+      hexdocs: [
+        include_executables_for: [:unix]
+      ]
     ]
   end
 end
