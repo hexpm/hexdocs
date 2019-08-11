@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :hexdocs,
   port: System.fetch_env!("HEXDOCS_PORT"),
