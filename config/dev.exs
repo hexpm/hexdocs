@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :hexdocs,
   port: "4002",
@@ -21,9 +21,4 @@ config :hexdocs, :docs_private_bucket, name: "hexdocs-private-staging"
 
 config :hexdocs, :docs_public_bucket, name: "hexdocs-public-staging"
 
-config :goth,
-  config: %{
-    "type" => "service_account",
-    "project_id" => "support",
-    "token_source" => :oauth_jwt
-  }
+config :goth, config: %{"project_id" => "hexdocs"}
