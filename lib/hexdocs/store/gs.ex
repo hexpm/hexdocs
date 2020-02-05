@@ -96,7 +96,7 @@ defmodule Hexdocs.Store.GS do
       Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end)
 
     doc = SweetXml.parse(body)
-    marker = SweetXml.xpath(doc, ~x"/ListBucketResult/Marker/text()"s)
+    marker = SweetXml.xpath(doc, ~x"/ListBucketResult/NextMarker/text()"s)
     items = SweetXml.xpath(doc, ~x"/ListBucketResult/Contents/Key/text()"ls)
     marker = if marker != "", do: marker
 
