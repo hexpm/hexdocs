@@ -13,7 +13,9 @@ defmodule Hexdocs do
   end
 
   defp build_message(key) do
-    %{"Records" => [%{"eventName" => "ObjectCreated:Put", "s3" => %{"object" => %{"key" => key}}}]}
+    %{
+      "Records" => [%{"eventName" => "ObjectCreated:Put", "s3" => %{"object" => %{"key" => key}}}]
+    }
   end
 
   defp batched_send(keys) do
