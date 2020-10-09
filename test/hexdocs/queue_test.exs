@@ -29,7 +29,7 @@ defmodule Hexdocs.QueueTest do
       tar = create_tar([{"index.html", "contents"}])
       Store.put(:repo_bucket, key, tar)
 
-      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
@@ -51,7 +51,7 @@ defmodule Hexdocs.QueueTest do
       tar = create_tar([{"index.html", "contents"}])
       Store.put(:repo_bucket, key, tar)
 
-      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@public_bucket, "#{test}/")
@@ -75,7 +75,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
       Store.put(@bucket, "queuetest/#{test}/index.html", "1.0.0")
 
-      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
@@ -100,7 +100,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
       Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
-      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
@@ -125,7 +125,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "garbage")
       Store.put(@bucket, "queuetest/#{test}/index.html", "garbage")
 
-      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
@@ -136,7 +136,7 @@ defmodule Hexdocs.QueueTest do
     end
 
     test "do nothing for key that does not match", %{test: test} do
-      ref = Broadway.test_messages(Hexdocs.Queue, [put_message("queuetest/packages/#{test}")])
+      ref = Broadway.test_message(Hexdocs.Queue, put_message("queuetest/packages/#{test}"))
       assert_receive {:ack, ^ref, [_], []}
       assert Store.list(@bucket, "queuetest/#{test}/") == []
     end
@@ -150,7 +150,7 @@ defmodule Hexdocs.QueueTest do
       tar = create_tar([{"index.html", "1.0.0"}])
       Store.put(:repo_bucket, key, tar)
 
-      ref = Broadway.test_messages(Hexdocs.Queue, [put_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
@@ -170,7 +170,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/index.html", "1.0.0")
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       assert Store.list(@bucket, "queuetest/#{test}/") == []
@@ -194,7 +194,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
@@ -225,7 +225,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
       key = "repos/queuetest/docs/#{test}-2.0.0.tar.gz"
-      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@bucket, "queuetest/#{test}/")
@@ -256,7 +256,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@public_bucket, "#{test}/index.html", "2.0.0")
 
       key = "docs/#{test}-2.0.0.tar.gz"
-      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@public_bucket, "#{test}/")
@@ -277,7 +277,7 @@ defmodule Hexdocs.QueueTest do
       Store.put(@public_bucket, "#{test}/index.html", "1.0.0")
 
       key = "docs/#{test}-1.0.0.tar.gz"
-      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       assert Store.list(@public_bucket, "#{test}/") == []
@@ -289,7 +289,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "docs/#{test}-1.0.0.tar.gz"
-      ref = Broadway.test_messages(Hexdocs.Queue, [delete_message(key)])
+      ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
