@@ -21,7 +21,7 @@ defmodule Hexdocs.Queue do
       ],
       processors: [
         default: [
-          stages: 4
+          stages: 2
         ]
       ]
     )
