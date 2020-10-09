@@ -20,16 +20,8 @@ defmodule Hexdocs do
     keys
     |> Stream.filter(&Regex.match?(@key_regex, &1))
     |> Stream.map(&build_message/1)
-    |> Stream.chunk_every(10, 10)
-    |> Enum.each(&send_batch_messages/1)
-  end
-
-  defp send_batch_messages(maps) when length(maps) <= 10 do
-    queue = Application.fetch_env!(:hexdocs, :queue_id)
-    messages = Enum.map(maps, &Jason.encode!/1)
-
-    ExAws.SQS.send_message_batch(queue, messages)
-    |> ExAws.request()
+    |> Task.async_stream(&send_message/1, max_concurrency: 10, ordered: false)
+    |> Stream.run()
   end
 
   defp send_message(map) do
@@ -37,6 +29,6 @@ defmodule Hexdocs do
     message = Jason.encode!(map)
 
     ExAws.SQS.send_message(queue, message)
-    |> ExAws.request()
+    |> ExAws.request!()
   end
 end
