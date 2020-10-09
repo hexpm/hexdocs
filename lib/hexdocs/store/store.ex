@@ -9,11 +9,13 @@ defmodule Hexdocs.Store do
 
   defmodule Repo do
     @type bucket :: atom
+    @type prefix :: key
     @type key :: String.t()
     @type body :: binary
     @type opts :: Keyword.t()
 
     @callback get(bucket, key, opts) :: body | nil
+    @callback list(bucket, prefix) :: [key]
   end
 
   defmodule Docs do

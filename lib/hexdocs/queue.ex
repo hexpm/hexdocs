@@ -5,14 +5,14 @@ defmodule Hexdocs.Queue do
   @ignore_packages ~w(eex elixir ex_unit iex logger mix hex)
 
   def start_link(_opts) do
-    name = Application.fetch_env!(:hexdocs, :queue_name)
+    url = Application.fetch_env!(:hexdocs, :queue_id)
     producer = Application.fetch_env!(:hexdocs, :queue_producer)
 
     Broadway.start_link(__MODULE__,
       name: __MODULE__,
       producers: [
         default: [
-          module: {producer, queue_name: name, max_number_of_messages: 10, wait_time_seconds: 10},
+          module: {producer, queue_url: url, max_number_of_messages: 10, wait_time_seconds: 10},
           stages: 1
         ]
       ],
@@ -61,6 +61,7 @@ defmodule Hexdocs.Queue do
 
         # TODO: Handle errors
         {:ok, files} = Hexdocs.Tar.unpack(body)
+        files = rewrite_files(files)
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
@@ -111,6 +112,12 @@ defmodule Hexdocs.Queue do
     base = Path.basename(file, ".tar.gz")
     [package, version] = String.split(base, "-", parts: 2)
     {package, version}
+  end
+
+  defp rewrite_files(files) do
+    Enum.map(files, fn {path, content} ->
+      {path, Hexdocs.FileRewriter.run(path, content)}
+    end)
   end
 
   defp all_versions(repository, package) do
