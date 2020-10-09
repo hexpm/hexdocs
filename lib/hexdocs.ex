@@ -27,12 +27,16 @@ defmodule Hexdocs do
   defp send_batch_messages(maps) when length(maps) <= 10 do
     queue = Application.fetch_env!(:hexdocs, :queue_id)
     messages = Enum.map(maps, &Jason.encode!/1)
+
     ExAws.SQS.send_message_batch(queue, messages)
+    |> ExAws.request()
   end
 
   defp send_message(map) do
     queue = Application.fetch_env!(:hexdocs, :queue_id)
     message = Jason.encode!(map)
+
     ExAws.SQS.send_message(queue, message)
+    |> ExAws.request()
   end
 end
