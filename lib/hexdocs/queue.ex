@@ -11,17 +11,20 @@ defmodule Hexdocs.Queue do
     Broadway.start_link(__MODULE__,
       name: __MODULE__,
       producer: [
-        module: {producer, queue_url: url, max_number_of_messages: 10, wait_time_seconds: 10},
-        stages: 1
-      ],
-      batchers: [
-        default: [
-          stages: 1
-        ]
+        module: {
+          producer,
+          queue_url: url,
+          max_number_of_messages: 8,
+          wait_time_seconds: 10,
+          visibility_timeout: 120
+        },
+        concurrency: 1
       ],
       processors: [
         default: [
-          stages: 2
+          concurrency: 2,
+          min_demand: 1,
+          max_demand: 2
         ]
       ]
     )
