@@ -60,6 +60,13 @@ defmodule Hexdocs.Store.Local do
     path = Path.join([dir(), bucket(bucket), key])
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, blob)
+    {:ok, 200, [], ""}
+  end
+
+  def put!(bucket, key, blob, _opts) do
+    path = Path.join([dir(), bucket(bucket), key])
+    File.mkdir_p!(Path.dirname(path))
+    File.write!(path, blob)
   end
 
   def delete(bucket, key) do

@@ -48,6 +48,21 @@ defmodule Hexdocs.Store.GS do
     url = url(bucket, key)
     headers = filter_nil_values(headers)
 
+    Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.put(url, headers, blob) end)
+  end
+
+  def put!(bucket, key, blob, opts) do
+    headers =
+      headers() ++
+        meta_headers(Keyword.fetch!(opts, :meta)) ++
+        [
+          {"cache-control", Keyword.fetch!(opts, :cache_control)},
+          {"content-type", Keyword.get(opts, :content_type)}
+        ]
+
+    url = url(bucket, key)
+    headers = filter_nil_values(headers)
+
     {:ok, 200, _headers, _body} =
       Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.put(url, headers, blob) end)
 

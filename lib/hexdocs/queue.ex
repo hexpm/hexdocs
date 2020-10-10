@@ -66,7 +66,7 @@ defmodule Hexdocs.Queue do
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
-        update_sitemap(repository)
+        update_sitemap(repository, key)
         Logger.info("FINISHED UPLOADING DOCS #{key}")
 
       :error ->
@@ -83,7 +83,7 @@ defmodule Hexdocs.Queue do
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
-        update_sitemap(repository)
+        update_sitemap(repository, key)
         Logger.info("FINISHED DELETING DOCS #{key}")
         :ok
 
@@ -132,16 +132,16 @@ defmodule Hexdocs.Queue do
     end
   end
 
-  defp update_sitemap("hexpm") do
-    Logger.info("UPDATING SITEMAP")
+  defp update_sitemap("hexpm", key) do
+    Logger.info("UPDATING SITEMAP #{key}")
 
     body = Hexdocs.Hexpm.hexdocs_sitemap()
     Hexdocs.Bucket.upload_sitemap(body)
 
-    Logger.info("UPDATED SITEMAP")
+    Logger.info("UPDATED SITEMAP #{key}")
   end
 
-  defp update_sitemap(_repository) do
+  defp update_sitemap(_repository, _key) do
     :ok
   end
 end

@@ -27,7 +27,7 @@ defmodule Hexdocs.QueueTest do
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "contents"}])
-      Store.put(:repo_bucket, key, tar)
+      Store.put!(:repo_bucket, key, tar)
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
@@ -49,7 +49,7 @@ defmodule Hexdocs.QueueTest do
 
       key = "docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "contents"}])
-      Store.put(:repo_bucket, key, tar)
+      Store.put!(:repo_bucket, key, tar)
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
@@ -71,9 +71,9 @@ defmodule Hexdocs.QueueTest do
 
       key = "repos/queuetest/docs/#{test}-2.0.0.tar.gz"
       tar = create_tar([{"index.html", "2.0.0"}])
-      Store.put(:repo_bucket, key, tar)
-      Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
-      Store.put(@bucket, "queuetest/#{test}/index.html", "1.0.0")
+      Store.put!(:repo_bucket, key, tar)
+      Store.put!(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/index.html", "1.0.0")
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
@@ -96,9 +96,9 @@ defmodule Hexdocs.QueueTest do
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "1.0.0"}])
-      Store.put(:repo_bucket, key, tar)
-      Store.put(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
-      Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
+      Store.put!(:repo_bucket, key, tar)
+      Store.put!(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
@@ -121,9 +121,9 @@ defmodule Hexdocs.QueueTest do
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "1.0.0"}])
-      Store.put(:repo_bucket, key, tar)
-      Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "garbage")
-      Store.put(@bucket, "queuetest/#{test}/index.html", "garbage")
+      Store.put!(:repo_bucket, key, tar)
+      Store.put!(@bucket, "queuetest/#{test}/1.0.0/index.html", "garbage")
+      Store.put!(@bucket, "queuetest/#{test}/index.html", "garbage")
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
@@ -148,7 +148,7 @@ defmodule Hexdocs.QueueTest do
 
       key = "docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "1.0.0"}])
-      Store.put(:repo_bucket, key, tar)
+      Store.put!(:repo_bucket, key, tar)
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
@@ -166,8 +166,8 @@ defmodule Hexdocs.QueueTest do
         %{"releases" => [%{"version" => "1.0.0", "has_docs" => true}]}
       end)
 
-      Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
-      Store.put(@bucket, "queuetest/#{test}/index.html", "1.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/index.html", "1.0.0")
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
       ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
@@ -189,9 +189,9 @@ defmodule Hexdocs.QueueTest do
         }
       end)
 
-      Store.put(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
-      Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
-      Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
       ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
@@ -218,11 +218,11 @@ defmodule Hexdocs.QueueTest do
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "1.0.0"}])
-      Store.put(:repo_bucket, key, tar)
+      Store.put!(:repo_bucket, key, tar)
 
-      Store.put(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
-      Store.put(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
-      Store.put(@bucket, "queuetest/#{test}/index.html", "2.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
+      Store.put!(@bucket, "queuetest/#{test}/index.html", "2.0.0")
 
       key = "repos/queuetest/docs/#{test}-2.0.0.tar.gz"
       ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
@@ -249,11 +249,11 @@ defmodule Hexdocs.QueueTest do
 
       key = "docs/#{test}-1.0.0.tar.gz"
       tar = create_tar([{"index.html", "1.0.0"}])
-      Store.put(:repo_bucket, key, tar)
+      Store.put!(:repo_bucket, key, tar)
 
-      Store.put(@public_bucket, "#{test}/2.0.0/index.html", "2.0.0")
-      Store.put(@public_bucket, "#{test}/1.0.0/index.html", "1.0.0")
-      Store.put(@public_bucket, "#{test}/index.html", "2.0.0")
+      Store.put!(@public_bucket, "#{test}/2.0.0/index.html", "2.0.0")
+      Store.put!(@public_bucket, "#{test}/1.0.0/index.html", "1.0.0")
+      Store.put!(@public_bucket, "#{test}/index.html", "2.0.0")
 
       key = "docs/#{test}-2.0.0.tar.gz"
       ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))
@@ -273,8 +273,8 @@ defmodule Hexdocs.QueueTest do
         nil
       end)
 
-      Store.put(@public_bucket, "#{test}/1.0.0/index.html", "1.0.0")
-      Store.put(@public_bucket, "#{test}/index.html", "1.0.0")
+      Store.put!(@public_bucket, "#{test}/1.0.0/index.html", "1.0.0")
+      Store.put!(@public_bucket, "#{test}/index.html", "1.0.0")
 
       key = "docs/#{test}-1.0.0.tar.gz"
       ref = Broadway.test_message(Hexdocs.Queue, delete_message(key))

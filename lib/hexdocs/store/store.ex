@@ -33,6 +33,7 @@ defmodule Hexdocs.Store do
     @callback get_page(bucket, key, opts) :: {status, headers, body}
     @callback stream_page(bucket, key, opts) :: {status, headers, stream}
     @callback put(bucket, key, body, opts) :: term
+    @callback put!(bucket, key, body, opts) :: term
     @callback delete_many(bucket, [key]) :: [term]
   end
 
@@ -44,5 +45,6 @@ defmodule Hexdocs.Store do
   def get_page(bucket, key, opts \\ []), do: impl().get_page(bucket, key, opts)
   def stream_page(bucket, key, opts \\ []), do: impl().stream_page(bucket, key, opts)
   def put(bucket, key, body, opts \\ []), do: impl().put(bucket, key, body, opts)
+  def put!(bucket, key, body, opts \\ []), do: impl().put!(bucket, key, body, opts)
   def delete_many(bucket, keys), do: impl().delete_many(bucket, keys)
 end
