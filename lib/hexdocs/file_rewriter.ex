@@ -7,10 +7,13 @@ defmodule Hexdocs.FileRewriter do
   @analytics_hook ~s|</head>|
   @analytics_addition ~s|<script async defer data-domain="${DOMAIN}" src="https://stats.${DOMAIN}/js/index.js"></script>|
 
+  @noindex_hook ~s|<meta name="robots" content="noindex">|
+
   def run(path, content) do
     content
     |> add_elixir_org_link(path)
     |> add_analytics(path)
+    |> remove_noindex(path)
   end
 
   defp add_elixir_org_link(content, path) do
@@ -28,6 +31,14 @@ defmodule Hexdocs.FileRewriter do
         host = Application.get_env(:hexdocs, :host)
         String.replace(@analytics_addition, "${DOMAIN}", host) <> match
       end)
+    else
+      content
+    end
+  end
+
+  defp remove_noindex(content, path) do
+    if String.ends_with?(path, ".html") do
+      String.replace(content, @noindex_hook, "")
     else
       content
     end

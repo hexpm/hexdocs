@@ -13,5 +13,7 @@ defmodule Hexdocs.FileRewriterTest do
              ~s|<a href="https://twitter.com/dignifiedquire" target="_blank" title="@dignifiedquire">Friedel Ziegelmayer</a>|
            ) ==
              ~s|<a href="https://twitter.com/dignifiedquire" target="_blank" title="@dignifiedquire">Friedel Ziegelmayer</a> for the <a href="https://elixir-lang.org" title="Elixir" target="_blank">Elixir programming language</a>|
+
+    assert FileRewriter.run("index.html", ~s|<meta name="robots" content="noindex">|) == ""
   end
 end
