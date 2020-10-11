@@ -5,25 +5,26 @@ defmodule Hexdocs.Queue do
   @ignore_packages ~w(eex elixir ex_unit iex logger mix hex)
 
   def start_link(_opts) do
-    name = Application.fetch_env!(:hexdocs, :queue_name)
+    url = Application.fetch_env!(:hexdocs, :queue_id)
     producer = Application.fetch_env!(:hexdocs, :queue_producer)
 
     Broadway.start_link(__MODULE__,
       name: __MODULE__,
-      producers: [
-        default: [
-          module: {producer, queue_name: name, max_number_of_messages: 10, wait_time_seconds: 10},
-          stages: 1
-        ]
-      ],
-      batchers: [
-        default: [
-          stages: 1
-        ]
+      producer: [
+        module: {
+          producer,
+          queue_url: url,
+          max_number_of_messages: 8,
+          wait_time_seconds: 10,
+          visibility_timeout: 120
+        },
+        concurrency: 1
       ],
       processors: [
         default: [
-          stages: 4
+          concurrency: 2,
+          min_demand: 1,
+          max_demand: 2
         ]
       ]
     )
@@ -61,10 +62,11 @@ defmodule Hexdocs.Queue do
 
         # TODO: Handle errors
         {:ok, files} = Hexdocs.Tar.unpack(body)
+        files = rewrite_files(files)
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
-        update_sitemap(repository)
+        update_sitemap(repository, key)
         Logger.info("FINISHED UPLOADING DOCS #{key}")
 
       :error ->
@@ -81,7 +83,7 @@ defmodule Hexdocs.Queue do
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
-        update_sitemap(repository)
+        update_sitemap(repository, key)
         Logger.info("FINISHED DELETING DOCS #{key}")
         :ok
 
@@ -113,6 +115,12 @@ defmodule Hexdocs.Queue do
     {package, version}
   end
 
+  defp rewrite_files(files) do
+    Enum.map(files, fn {path, content} ->
+      {path, Hexdocs.FileRewriter.run(path, content)}
+    end)
+  end
+
   defp all_versions(repository, package) do
     if package = Hexdocs.Hexpm.get_package(repository, package) do
       package["releases"]
@@ -124,16 +132,16 @@ defmodule Hexdocs.Queue do
     end
   end
 
-  defp update_sitemap("hexpm") do
-    Logger.info("UPDATING SITEMAP")
+  defp update_sitemap("hexpm", key) do
+    Logger.info("UPDATING SITEMAP #{key}")
 
     body = Hexdocs.Hexpm.hexdocs_sitemap()
     Hexdocs.Bucket.upload_sitemap(body)
 
-    Logger.info("UPDATED SITEMAP")
+    Logger.info("UPDATED SITEMAP #{key}")
   end
 
-  defp update_sitemap(_repository) do
+  defp update_sitemap(_repository, _key) do
     :ok
   end
 end

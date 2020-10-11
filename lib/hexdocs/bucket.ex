@@ -8,7 +8,14 @@ defmodule Hexdocs.Bucket do
       meta: [{"surrogate-key", "sitemap"}]
     ]
 
-    Hexdocs.Store.put(:docs_public_bucket, "sitemap.xml", sitemap, opts)
+    case Hexdocs.Store.put(:docs_public_bucket, "sitemap.xml", sitemap, opts) do
+      {:ok, 200, _headers, _body} -> :ok
+      # We get rate limit errors when processing many objects,
+      # ignore this for now under the assumption we only get the
+      # error when reprocessing
+      {:ok, 429, _headers, _body} -> :ok
+    end
+
     purge(["sitemap"])
   end
 
@@ -270,6 +277,6 @@ defmodule Hexdocs.Bucket do
 
   defp put(bucket, key, data, opts) do
     Logger.info("Uploading #{bucket} #{key}")
-    Hexdocs.Store.put(bucket, key, data, opts)
+    Hexdocs.Store.put!(bucket, key, data, opts)
   end
 end

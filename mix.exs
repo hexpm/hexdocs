@@ -21,11 +21,11 @@ defmodule Hexdocs.MixProject do
 
   defp deps do
     [
-      {:broadway, "~> 0.4.0", github: "plataformatec/broadway", override: true},
-      {:broadway_sqs, "~> 0.2.0"},
+      {:broadway, "~> 0.6.0"},
+      {:broadway_sqs, "~> 0.6.0"},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
-      {:ex_aws_sqs, "~> 2.0"},
+      {:ex_aws_sqs, "~> 3.0"},
       {:goth, "~> 1.0"},
       {:hackney, "~> 1.13"},
       {:jason, "~> 1.1"},
@@ -33,7 +33,7 @@ defmodule Hexdocs.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:rollbax, "~> 0.11.0"},
       {:sweet_xml, "~> 0.6.5"},
-      {:mox, "~> 0.5.0", only: :test}
+      {:mox, "~> 1.0", only: :test}
     ]
   end
 

@@ -50,7 +50,7 @@ defmodule Hexdocs.PlugTest do
     end)
 
     old = NaiveDateTime.add(NaiveDateTime.utc_now(), -3600)
-    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
+    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
@@ -69,7 +69,7 @@ defmodule Hexdocs.PlugTest do
     end)
 
     old = NaiveDateTime.add(NaiveDateTime.utc_now(), -3600)
-    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
+    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/foo")
@@ -102,7 +102,7 @@ defmodule Hexdocs.PlugTest do
 
   test "serve 200 page", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
+    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
@@ -115,7 +115,7 @@ defmodule Hexdocs.PlugTest do
 
   test "serve 404 page", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
+    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/404.html")
@@ -128,7 +128,7 @@ defmodule Hexdocs.PlugTest do
 
   test "redirect to root", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
+    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}")
@@ -141,7 +141,7 @@ defmodule Hexdocs.PlugTest do
 
   test "serve index.html for root requests", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(@bucket, "plugtest/#{test}/index.html", "body")
+    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/")
@@ -154,7 +154,7 @@ defmodule Hexdocs.PlugTest do
 
   test "rewrite docs_config", %{test: test} do
     now = NaiveDateTime.utc_now()
-    Store.put(@bucket, "plugtest/#{test}/docs_config.js", "var versionNodes;")
+    Store.put!(@bucket, "plugtest/#{test}/docs_config.js", "var versionNodes;")
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/1.0.0/docs_config.js")
