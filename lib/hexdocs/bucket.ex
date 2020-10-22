@@ -1,22 +1,33 @@
 defmodule Hexdocs.Bucket do
   require Logger
 
-  def upload_sitemap(sitemap) do
+  def upload_index_sitemap(sitemap) do
+    upload_sitemap("sitemap", "sitemap.xml", sitemap)
+  end
+
+  def upload_package_sitemap(package, sitemap) do
+    upload_sitemap("sitemap/#{package}", "#{package}/sitemap.xml", sitemap)
+  end
+
+  defp upload_sitemap(key, path, sitemap) do
     opts = [
       content_type: "text/xml",
       cache_control: "public, max-age=3600",
-      meta: [{"surrogate-key", "sitemap"}]
+      meta: [{"surrogate-key", key}]
     ]
 
-    case Hexdocs.Store.put(:docs_public_bucket, "sitemap.xml", sitemap, opts) do
-      {:ok, 200, _headers, _body} -> :ok
+    case Hexdocs.Store.put(:docs_public_bucket, path, sitemap, opts) do
+      {:ok, 200, _headers, _body} ->
+        :ok
+
       # We get rate limit errors when processing many objects,
       # ignore this for now under the assumption we only get the
       # error when reprocessing
-      {:ok, 429, _headers, _body} -> :ok
+      {:ok, 429, _headers, _body} ->
+        :ok
     end
 
-    purge(["sitemap"])
+    purge([path])
   end
 
   def upload(repository, package, version, all_versions, files) do
@@ -46,7 +57,7 @@ defmodule Hexdocs.Bucket do
       for version <- versions do
         %{
           version: "v#{version}",
-          url: hexdocs_url(repository, package, version)
+          url: Hexdocs.url(repository, "/#{package}/#{version}")
         }
       end
 
@@ -59,13 +70,6 @@ defmodule Hexdocs.Bucket do
 
   defp docs_config_cdn_key(repository, package) do
     "docspage/#{repository_cdn_key(repository)}#{package}/docs_config.js"
-  end
-
-  defp hexdocs_url(repository, package, version) do
-    host = Application.get_env(:hexdocs, :host)
-    scheme = if host == "hexdocs.pm", do: "https", else: "http"
-    subdomain = if repository == "hexpm", do: "", else: "#{repository}."
-    "#{scheme}://#{subdomain}#{host}/#{package}/#{version}"
   end
 
   def delete(repository, package, version, all_versions) do
