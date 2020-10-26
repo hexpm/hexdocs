@@ -152,9 +152,17 @@ defmodule Hexdocs.PlugTest do
     assert conn.resp_body == "body"
   end
 
-  test "rewrite docs_config", %{test: test} do
+  test "serve docs_config.js for unversioned and versioned requests", %{test: test} do
     now = NaiveDateTime.utc_now()
     Store.put!(@bucket, "plugtest/#{test}/docs_config.js", "var versionNodes;")
+
+    conn =
+      conn(:get, "http://plugtest.localhost:5002/#{test}/docs_config.js")
+      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => now, "key_created_at" => now})
+      |> call()
+
+    assert conn.status == 200
+    assert conn.resp_body == "var versionNodes;"
 
     conn =
       conn(:get, "http://plugtest.localhost:5002/#{test}/1.0.0/docs_config.js")
