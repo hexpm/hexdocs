@@ -33,12 +33,4 @@ defmodule Hexdocs do
     ExAws.SQS.send_message(queue, message)
     |> ExAws.request!()
   end
-
-  def url(repository, path) do
-    "/" <> _ = path
-    host = Application.get_env(:hexdocs, :host)
-    scheme = if host == "hexdocs.pm", do: "https", else: "http"
-    subdomain = if repository == "hexpm", do: "", else: "#{repository}."
-    "#{scheme}://#{subdomain}#{host}#{path}"
-  end
 end

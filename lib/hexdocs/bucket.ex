@@ -31,7 +31,7 @@ defmodule Hexdocs.Bucket do
   end
 
   def upload(repository, package, version, all_versions, files) do
-    latest_version? = latest_version?(version, all_versions)
+    latest_version? = Hexdocs.Utils.latest_version?(version, all_versions)
     docs_config = build_docs_config(repository, package, version, all_versions)
     upload_type = upload_type(latest_version?)
     upload_files = list_upload_files(repository, package, version, files, upload_type)
@@ -57,7 +57,7 @@ defmodule Hexdocs.Bucket do
       for version <- versions do
         %{
           version: "v#{version}",
-          url: Hexdocs.url(repository, "/#{package}/#{version}")
+          url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}")
         }
       end
 
@@ -73,8 +73,8 @@ defmodule Hexdocs.Bucket do
   end
 
   def delete(repository, package, version, all_versions) do
-    deleting_latest_version? = latest_version?(version, all_versions)
-    new_latest_version = latest_version(all_versions -- [version])
+    deleting_latest_version? = Hexdocs.Utils.latest_version?(version, all_versions)
+    new_latest_version = Hexdocs.Utils.latest_version(all_versions -- [version])
 
     cond do
       deleting_latest_version? && new_latest_version ->
@@ -98,37 +98,6 @@ defmodule Hexdocs.Bucket do
         delete_old_docs(repository, package, [version], [], :versioned)
         purge_hexdocs_cache(repository, package, [version], :versioned)
     end
-  end
-
-  defp latest_version?(_version, []) do
-    true
-  end
-
-  defp latest_version?(version, all_versions) do
-    pre_release? = version.pre != []
-    first_release? = all_versions == []
-    all_pre_releases? = Enum.all?(all_versions, &(&1.pre != []))
-
-    cond do
-      first_release? ->
-        true
-
-      all_pre_releases? ->
-        latest_version = List.first(all_versions)
-        Version.compare(version, latest_version) in [:eq, :gt]
-
-      pre_release? ->
-        false
-
-      true ->
-        nonpre_versions = Enum.filter(all_versions, &(&1.pre == []))
-        latest_version = List.first(nonpre_versions)
-        Version.compare(version, latest_version) in [:eq, :gt]
-    end
-  end
-
-  defp latest_version(versions) do
-    Enum.find(versions, &(&1.pre != [])) || List.first(versions)
   end
 
   defp build_key("hexpm", package, version) do

@@ -65,9 +65,14 @@ defmodule Hexdocs.Queue do
         files = rewrite_files(files)
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
+
         Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
-        update_index_sitemap(repository, key)
-        update_package_sitemap(repository, key, package, files)
+
+        if Hexdocs.Utils.latest_version?(version, all_versions) do
+          update_index_sitemap(repository, key)
+          update_package_sitemap(repository, key, package, files)
+        end
+
         Logger.info("FINISHED UPLOADING DOCS #{key}")
 
       :error ->

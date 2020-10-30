@@ -9,7 +9,7 @@ defmodule Hexdocs.PackageSitemap do
       xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
   <%= for page <- pages do %>
     <url>
-      <loc><%= Hexdocs.url("hexpm", "/#{package_name}/#{page}") %></loc>
+      <loc><%= Hexdocs.Utils.hexdocs_url("hexpm", "/#{package_name}/#{page}") %></loc>
       <lastmod><%= format_datetime updated_at %></lastmod>
       <changefreq>daily</changefreq>
       <priority>0.8</priority>
