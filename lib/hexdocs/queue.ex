@@ -65,8 +65,14 @@ defmodule Hexdocs.Queue do
         files = rewrite_files(files)
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
+
         Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
-        update_sitemap(repository, key)
+
+        if Hexdocs.Utils.latest_version?(version, all_versions) do
+          update_index_sitemap(repository, key)
+          update_package_sitemap(repository, key, package, files)
+        end
+
         Logger.info("FINISHED UPLOADING DOCS #{key}")
 
       :error ->
@@ -83,7 +89,7 @@ defmodule Hexdocs.Queue do
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
-        update_sitemap(repository, key)
+        update_index_sitemap(repository, key)
         Logger.info("FINISHED DELETING DOCS #{key}")
         :ok
 
@@ -132,16 +138,30 @@ defmodule Hexdocs.Queue do
     end
   end
 
-  defp update_sitemap("hexpm", key) do
-    Logger.info("UPDATING SITEMAP #{key}")
+  defp update_index_sitemap("hexpm", key) do
+    Logger.info("UPDATING INDEX SITEMAP #{key}")
 
     body = Hexdocs.Hexpm.hexdocs_sitemap()
-    Hexdocs.Bucket.upload_sitemap(body)
+    Hexdocs.Bucket.upload_index_sitemap(body)
 
-    Logger.info("UPDATED SITEMAP #{key}")
+    Logger.info("UPDATED INDEX SITEMAP #{key}")
   end
 
-  defp update_sitemap(_repository, _key) do
+  defp update_index_sitemap(_repository, _key) do
+    :ok
+  end
+
+  defp update_package_sitemap("hexpm", key, package, files) do
+    Logger.info("UPDATING PACKAGE SITEMAP #{key}")
+
+    pages = for {path, _content} <- files, Path.extname(path) == ".html", do: path
+    body = Hexdocs.PackageSitemap.render(package, pages, DateTime.utc_now())
+    Hexdocs.Bucket.upload_package_sitemap(package, body)
+
+    Logger.info("UPDATED PACKAGE SITEMAP #{key}")
+  end
+
+  defp update_package_sitemap(_repository, _key, _package, _files) do
     :ok
   end
 end

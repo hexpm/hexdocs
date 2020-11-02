@@ -55,10 +55,11 @@ defmodule Hexdocs.QueueTest do
       assert_receive {:ack, ^ref, [_], []}
 
       files = Store.list(@public_bucket, "#{test}/")
-      assert length(files) == 3
+      assert length(files) == 4
       assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
       assert Store.get(@public_bucket, "#{test}/docs_config.js")
       assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "contents"
+      assert Store.get(@public_bucket, "#{test}/sitemap.xml")
     end
 
     test "overwrite main docs with newer versions", %{test: test} do
@@ -147,13 +148,25 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "docs/#{test}-1.0.0.tar.gz"
-      tar = create_tar([{"index.html", "1.0.0"}])
+
+      tar =
+        create_tar([
+          {"index.html", "1.0.0"},
+          {"logo.png", ""},
+          {"Foo.html", ""}
+        ])
+
       Store.put!(:repo_bucket, key, tar)
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
       assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
+
+      sitemap = Store.get(@public_bucket, "#{test}/sitemap.xml")
+      assert sitemap =~ "<loc>http://localhost/#{test}/index.html</loc>"
+      assert sitemap =~ "<loc>http://localhost/#{test}/Foo.html</loc>"
+      refute sitemap =~ "logo.png"
     end
   end
 

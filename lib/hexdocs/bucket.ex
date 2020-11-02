@@ -1,26 +1,37 @@
 defmodule Hexdocs.Bucket do
   require Logger
 
-  def upload_sitemap(sitemap) do
+  def upload_index_sitemap(sitemap) do
+    upload_sitemap("sitemap", "sitemap.xml", sitemap)
+  end
+
+  def upload_package_sitemap(package, sitemap) do
+    upload_sitemap("sitemap/#{package}", "#{package}/sitemap.xml", sitemap)
+  end
+
+  defp upload_sitemap(key, path, sitemap) do
     opts = [
       content_type: "text/xml",
       cache_control: "public, max-age=3600",
-      meta: [{"surrogate-key", "sitemap"}]
+      meta: [{"surrogate-key", key}]
     ]
 
-    case Hexdocs.Store.put(:docs_public_bucket, "sitemap.xml", sitemap, opts) do
-      {:ok, 200, _headers, _body} -> :ok
+    case Hexdocs.Store.put(:docs_public_bucket, path, sitemap, opts) do
+      {:ok, 200, _headers, _body} ->
+        :ok
+
       # We get rate limit errors when processing many objects,
       # ignore this for now under the assumption we only get the
       # error when reprocessing
-      {:ok, 429, _headers, _body} -> :ok
+      {:ok, 429, _headers, _body} ->
+        :ok
     end
 
-    purge(["sitemap"])
+    purge([path])
   end
 
   def upload(repository, package, version, all_versions, files) do
-    latest_version? = latest_version?(version, all_versions)
+    latest_version? = Hexdocs.Utils.latest_version?(version, all_versions)
     docs_config = build_docs_config(repository, package, version, all_versions)
     upload_type = upload_type(latest_version?)
     upload_files = list_upload_files(repository, package, version, files, upload_type)
@@ -46,7 +57,7 @@ defmodule Hexdocs.Bucket do
       for version <- versions do
         %{
           version: "v#{version}",
-          url: hexdocs_url(repository, package, version)
+          url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}")
         }
       end
 
@@ -61,16 +72,9 @@ defmodule Hexdocs.Bucket do
     "docspage/#{repository_cdn_key(repository)}#{package}/docs_config.js"
   end
 
-  defp hexdocs_url(repository, package, version) do
-    host = Application.get_env(:hexdocs, :host)
-    scheme = if host == "hexdocs.pm", do: "https", else: "http"
-    subdomain = if repository == "hexpm", do: "", else: "#{repository}."
-    "#{scheme}://#{subdomain}#{host}/#{package}/#{version}"
-  end
-
   def delete(repository, package, version, all_versions) do
-    deleting_latest_version? = latest_version?(version, all_versions)
-    new_latest_version = latest_version(all_versions -- [version])
+    deleting_latest_version? = Hexdocs.Utils.latest_version?(version, all_versions)
+    new_latest_version = Hexdocs.Utils.latest_version(all_versions -- [version])
 
     cond do
       deleting_latest_version? && new_latest_version ->
@@ -94,37 +98,6 @@ defmodule Hexdocs.Bucket do
         delete_old_docs(repository, package, [version], [], :versioned)
         purge_hexdocs_cache(repository, package, [version], :versioned)
     end
-  end
-
-  defp latest_version?(_version, []) do
-    true
-  end
-
-  defp latest_version?(version, all_versions) do
-    pre_release? = version.pre != []
-    first_release? = all_versions == []
-    all_pre_releases? = Enum.all?(all_versions, &(&1.pre != []))
-
-    cond do
-      first_release? ->
-        true
-
-      all_pre_releases? ->
-        latest_version = List.first(all_versions)
-        Version.compare(version, latest_version) in [:eq, :gt]
-
-      pre_release? ->
-        false
-
-      true ->
-        nonpre_versions = Enum.filter(all_versions, &(&1.pre == []))
-        latest_version = List.first(nonpre_versions)
-        Version.compare(version, latest_version) in [:eq, :gt]
-    end
-  end
-
-  defp latest_version(versions) do
-    Enum.find(versions, &(&1.pre != [])) || List.first(versions)
   end
 
   defp build_key("hexpm", package, version) do
