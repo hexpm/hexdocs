@@ -47,6 +47,25 @@ defmodule Hexdocs.Queue do
     message
   end
 
+  # TODO: remove after running on production
+  def handle_message(%{data: %{"hexdocs:sitemap" => key}} = message) do
+    Logger.info("#{key}: start")
+
+    case key_components(key) do
+      {:ok, repository, package, _version} ->
+        body = Hexdocs.Store.get(:repo_bucket, key)
+        {:ok, files} = Hexdocs.Tar.unpack(body)
+        update_index_sitemap(repository, key)
+        update_package_sitemap(repository, key, package, files)
+        Logger.info("#{key}: done")
+
+      :error ->
+        Logger.info("#{key}: skip")
+    end
+
+    message
+  end
+
   @impl true
   def handle_batch(_batcher, messages, _batch_info, _context) do
     messages
