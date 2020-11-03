@@ -34,38 +34,10 @@ defmodule Hexdocs do
     |> ExAws.request!()
   end
 
-  # TODO: remove after running on production
   def process_all_sitemaps(paths) do
     paths
     |> Stream.map(&%{"hexdocs:sitemap" => &1})
     |> Task.async_stream(&send_message/1, max_concurrency: 10, ordered: false)
     |> Stream.run()
-  end
-
-  # TODO: remove after running on production
-  def paths_for_sitemaps() do
-    Hexdocs.Store.list(:repo_bucket, "docs/")
-    |> Stream.filter(&Regex.match?(@key_regex, &1))
-    |> Stream.map(fn path ->
-      {package, version} = filename_to_release(path)
-      {path, package, Version.parse!(version)}
-    end)
-    |> Stream.chunk_by(fn {_, package, _} -> package end)
-    |> Stream.flat_map(fn entries ->
-      entries = Enum.sort_by(entries, fn {_, _, version} -> version end, {:desc, Version})
-      all_versions = for {_, _, version} <- entries, do: version
-
-      List.wrap(
-        Enum.find_value(entries, fn {path, _, version} ->
-          Hexdocs.Utils.latest_version?(version, all_versions) && path
-        end)
-      )
-    end)
-  end
-
-  defp filename_to_release(file) do
-    base = Path.basename(file, ".tar.gz")
-    [package, version] = String.split(base, "-", parts: 2)
-    {package, version}
   end
 end

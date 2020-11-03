@@ -183,4 +183,27 @@ defmodule Hexdocs.Queue do
   defp update_package_sitemap(_repository, _key, _package, _files) do
     :ok
   end
+
+  @doc false
+  def paths_for_sitemaps() do
+    key_regex = ~r"docs/(.*)-(.*).tar.gz$"
+
+    Hexdocs.Store.list(:repo_bucket, "docs/")
+    |> Stream.filter(&Regex.match?(key_regex, &1))
+    |> Stream.map(fn path ->
+      {package, version} = filename_to_release(path)
+      {path, package, Version.parse!(version)}
+    end)
+    |> Stream.chunk_by(fn {_, package, _} -> package end)
+    |> Stream.flat_map(fn entries ->
+      entries = Enum.sort_by(entries, fn {_, _, version} -> version end, {:desc, Version})
+      all_versions = for {_, _, version} <- entries, do: version
+
+      List.wrap(
+        Enum.find_value(entries, fn {path, _, version} ->
+          Hexdocs.Utils.latest_version?(version, all_versions) && path
+        end)
+      )
+    end)
+  end
 end

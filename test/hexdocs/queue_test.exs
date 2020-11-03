@@ -309,7 +309,6 @@ defmodule Hexdocs.QueueTest do
     end
   end
 
-  # TODO: remove after running on production
   test "process sitemaps", %{test: test} do
     key = "docs/#{test}-1.0.0.tar.gz"
     tar = create_tar([{"index.html", "contents"}])
@@ -323,8 +322,7 @@ defmodule Hexdocs.QueueTest do
     assert Store.get(@public_bucket, "#{test}/sitemap.xml")
   end
 
-  # TODO: remove after running on production
-  test "paths_for_sitemaps" do
+  test "paths_for_sitemaps/0" do
     Store.Local.delete(:repo_bucket, "docs")
     Store.put!(:repo_bucket, "docs/foo-1.0.0.tar.gz", "")
     Store.put!(:repo_bucket, "docs/bar-1.0.0.tar.gz", "")
@@ -334,7 +332,7 @@ defmodule Hexdocs.QueueTest do
     Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.1.tar.gz", "")
     Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.2.tar.gz", "")
 
-    assert Enum.to_list(Hexdocs.paths_for_sitemaps()) ==
+    assert Enum.to_list(Hexdocs.Queue.paths_for_sitemaps()) ==
              [
                "docs/bar-1.1.0.tar.gz",
                "docs/baz-1.0.0.tar.gz",
