@@ -72,7 +72,7 @@ defmodule Hexdocs.Store.Local do
   def delete(bucket, key) do
     [dir(), bucket(bucket), key]
     |> Path.join()
-    |> File.rm()
+    |> File.rm_rf!()
   end
 
   def delete_many(bucket, keys) do

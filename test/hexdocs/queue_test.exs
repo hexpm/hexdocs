@@ -309,6 +309,38 @@ defmodule Hexdocs.QueueTest do
     end
   end
 
+  test "process sitemaps", %{test: test} do
+    key = "docs/#{test}-1.0.0.tar.gz"
+    tar = create_tar([{"index.html", "contents"}])
+    Store.put!(:repo_bucket, key, tar)
+
+    refute Store.get(@public_bucket, "#{test}/sitemap.xml")
+
+    ref = Broadway.test_message(Hexdocs.Queue, Jason.encode!(%{"hexdocs:sitemap" => key}))
+    assert_receive {:ack, ^ref, [_], []}
+
+    assert Store.get(@public_bucket, "#{test}/sitemap.xml")
+  end
+
+  test "paths_for_sitemaps/0" do
+    Store.Local.delete(:repo_bucket, "docs")
+    Store.put!(:repo_bucket, "docs/foo-1.0.0.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/bar-1.0.0.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/bar-1.1.0.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/baz-1.0.0.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/baz-2.0.0-rc.1.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.1.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.2.tar.gz", "")
+
+    assert Enum.to_list(Hexdocs.Queue.paths_for_sitemaps()) ==
+             [
+               "docs/bar-1.1.0.tar.gz",
+               "docs/baz-1.0.0.tar.gz",
+               "docs/foo-1.0.0.tar.gz",
+               "docs/qux-1.0.0-rc.2.tar.gz"
+             ]
+  end
+
   defp put_message(key) do
     Jason.encode!(%{
       "Records" => [

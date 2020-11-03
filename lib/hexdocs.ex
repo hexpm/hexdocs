@@ -33,4 +33,11 @@ defmodule Hexdocs do
     ExAws.SQS.send_message(queue, message)
     |> ExAws.request!()
   end
+
+  def process_all_sitemaps(paths) do
+    paths
+    |> Stream.map(&%{"hexdocs:sitemap" => &1})
+    |> Task.async_stream(&send_message/1, max_concurrency: 10, ordered: false)
+    |> Stream.run()
+  end
 end

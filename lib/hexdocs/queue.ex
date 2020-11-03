@@ -47,6 +47,25 @@ defmodule Hexdocs.Queue do
     message
   end
 
+  # TODO: remove after running on production
+  def handle_message(%{data: %{"hexdocs:sitemap" => key}} = message) do
+    Logger.info("#{key}: start")
+
+    case key_components(key) do
+      {:ok, repository, package, _version} ->
+        body = Hexdocs.Store.get(:repo_bucket, key)
+        {:ok, files} = Hexdocs.Tar.unpack(body)
+        update_index_sitemap(repository, key)
+        update_package_sitemap(repository, key, package, files)
+        Logger.info("#{key}: done")
+
+      :error ->
+        Logger.info("#{key}: skip")
+    end
+
+    message
+  end
+
   @impl true
   def handle_batch(_batcher, messages, _batch_info, _context) do
     messages
@@ -163,5 +182,28 @@ defmodule Hexdocs.Queue do
 
   defp update_package_sitemap(_repository, _key, _package, _files) do
     :ok
+  end
+
+  @doc false
+  def paths_for_sitemaps() do
+    key_regex = ~r"docs/(.*)-(.*).tar.gz$"
+
+    Hexdocs.Store.list(:repo_bucket, "docs/")
+    |> Stream.filter(&Regex.match?(key_regex, &1))
+    |> Stream.map(fn path ->
+      {package, version} = filename_to_release(path)
+      {path, package, Version.parse!(version)}
+    end)
+    |> Stream.chunk_by(fn {_, package, _} -> package end)
+    |> Stream.flat_map(fn entries ->
+      entries = Enum.sort_by(entries, fn {_, _, version} -> version end, {:desc, Version})
+      all_versions = for {_, _, version} <- entries, do: version
+
+      List.wrap(
+        Enum.find_value(entries, fn {path, _, version} ->
+          Hexdocs.Utils.latest_version?(version, all_versions) && path
+        end)
+      )
+    end)
   end
 end
