@@ -192,16 +192,17 @@ defmodule Hexdocs.Queue do
     |> Stream.filter(&Regex.match?(key_regex, &1))
     |> Stream.map(fn path ->
       {package, version} = filename_to_release(path)
-      {path, package, Version.parse!(version)}
+      {path, package, version}
     end)
+    |> Stream.reject(fn {_, package, _} -> package in @ignore_packages end)
     |> Stream.chunk_by(fn {_, package, _} -> package end)
     |> Stream.flat_map(fn entries ->
       entries = Enum.sort_by(entries, fn {_, _, version} -> version end, {:desc, Version})
-      all_versions = for {_, _, version} <- entries, do: version
+      all_versions = for {_, _, version} <- entries, do: Version.parse!(version)
 
       List.wrap(
         Enum.find_value(entries, fn {path, _, version} ->
-          Hexdocs.Utils.latest_version?(version, all_versions) && path
+          Hexdocs.Utils.latest_version?(Version.parse!(version), all_versions) && path
         end)
       )
     end)

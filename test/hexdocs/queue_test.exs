@@ -331,6 +331,7 @@ defmodule Hexdocs.QueueTest do
     Store.put!(:repo_bucket, "docs/baz-2.0.0-rc.1.tar.gz", "")
     Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.1.tar.gz", "")
     Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.2.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/elixir-1.0.tar.gz", "")
 
     assert Enum.to_list(Hexdocs.Queue.paths_for_sitemaps()) ==
              [
