@@ -1,6 +1,5 @@
 defmodule Hexdocs.QueueTest do
   use ExUnit.Case, async: true
-  import Hexdocs.TestHelper
   alias Hexdocs.{HexpmMock, Store}
 
   @bucket :docs_private_bucket
@@ -26,7 +25,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      tar = create_tar([{"index.html", "contents"}])
+      tar = Hexdocs.Tar.create([{"index.html", "contents"}])
       Store.put!(:repo_bucket, key, tar)
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
@@ -48,7 +47,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "docs/#{test}-1.0.0.tar.gz"
-      tar = create_tar([{"index.html", "contents"}])
+      tar = Hexdocs.Tar.create([{"index.html", "contents"}])
       Store.put!(:repo_bucket, key, tar)
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
@@ -71,7 +70,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "repos/queuetest/docs/#{test}-2.0.0.tar.gz"
-      tar = create_tar([{"index.html", "2.0.0"}])
+      tar = Hexdocs.Tar.create([{"index.html", "2.0.0"}])
       Store.put!(:repo_bucket, key, tar)
       Store.put!(@bucket, "queuetest/#{test}/1.0.0/index.html", "1.0.0")
       Store.put!(@bucket, "queuetest/#{test}/index.html", "1.0.0")
@@ -96,7 +95,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      tar = create_tar([{"index.html", "1.0.0"}])
+      tar = Hexdocs.Tar.create([{"index.html", "1.0.0"}])
       Store.put!(:repo_bucket, key, tar)
       Store.put!(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
       Store.put!(@bucket, "queuetest/#{test}/index.html", "2.0.0")
@@ -121,7 +120,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      tar = create_tar([{"index.html", "1.0.0"}])
+      tar = Hexdocs.Tar.create([{"index.html", "1.0.0"}])
       Store.put!(:repo_bucket, key, tar)
       Store.put!(@bucket, "queuetest/#{test}/1.0.0/index.html", "garbage")
       Store.put!(@bucket, "queuetest/#{test}/index.html", "garbage")
@@ -150,7 +149,7 @@ defmodule Hexdocs.QueueTest do
       key = "docs/#{test}-1.0.0.tar.gz"
 
       tar =
-        create_tar([
+        Hexdocs.Tar.create([
           {"index.html", "1.0.0"},
           {"logo.png", ""},
           {"Foo.html", ""}
@@ -230,7 +229,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "repos/queuetest/docs/#{test}-1.0.0.tar.gz"
-      tar = create_tar([{"index.html", "1.0.0"}])
+      tar = Hexdocs.Tar.create([{"index.html", "1.0.0"}])
       Store.put!(:repo_bucket, key, tar)
 
       Store.put!(@bucket, "queuetest/#{test}/2.0.0/index.html", "2.0.0")
@@ -261,7 +260,7 @@ defmodule Hexdocs.QueueTest do
       end)
 
       key = "docs/#{test}-1.0.0.tar.gz"
-      tar = create_tar([{"index.html", "1.0.0"}])
+      tar = Hexdocs.Tar.create([{"index.html", "1.0.0"}])
       Store.put!(:repo_bucket, key, tar)
 
       Store.put!(@public_bucket, "#{test}/2.0.0/index.html", "2.0.0")
@@ -311,7 +310,7 @@ defmodule Hexdocs.QueueTest do
 
   test "process sitemaps", %{test: test} do
     key = "docs/#{test}-1.0.0.tar.gz"
-    tar = create_tar([{"index.html", "contents"}])
+    tar = Hexdocs.Tar.create([{"index.html", "contents"}])
     Store.put!(:repo_bucket, key, tar)
 
     refute Store.get(@public_bucket, "#{test}/sitemap.xml")
