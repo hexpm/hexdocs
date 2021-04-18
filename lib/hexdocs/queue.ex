@@ -47,7 +47,6 @@ defmodule Hexdocs.Queue do
     message
   end
 
-  # TODO: remove after running on production
   def handle_message(%{data: %{"hexdocs:sitemap" => key}} = message) do
     Logger.info("#{key}: start")
 
