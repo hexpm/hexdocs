@@ -18,6 +18,14 @@ defmodule Hexdocs.PlugTest do
              ["http://localhost:5000/login?hexdocs=plugtest&return=/foo"]
   end
 
+  test "handle no path" do
+    conn = conn(:get, "http://plugtest.localhost:5002") |> call()
+    assert conn.status == 302
+
+    assert get_resp_header(conn, "location") ==
+             ["http://localhost:5000/login?hexdocs=plugtest&return="]
+  end
+
   test "update session and redirect when key is set" do
     conn = conn(:get, "http://plugtest.localhost:5002/foo?key=abc") |> call()
     assert conn.status == 302

@@ -172,7 +172,11 @@ defmodule Hexdocs.Plug do
 
   defp rewrite_uri(conn) do
     uri = URI.parse(conn.request_path)
-    Map.update!(uri, :path, &rewrite_path/1)
+    %URI{path: rewrite_path(uri.path)}
+  end
+
+  defp rewrite_path(nil) do
+    nil
   end
 
   defp rewrite_path(path) do
