@@ -24,8 +24,6 @@ defmodule Hexdocs.Plug do
     only_matching: ~w(favicon robots)
   )
 
-  plug(Plug.RequestId)
-
   if Mix.env() != :test do
     plug(Logster.Plugs.Logger, excludes: [:params])
   end
