@@ -1,7 +1,7 @@
 defmodule Hexdocs.Tar do
   @zlib_magic 16 + 15
-  @compressed_max_size 8 * 1024 * 1024
-  @uncompressed_max_size 64 * 1024 * 1024
+  @compressed_max_size 16 * 1024 * 1024
+  @uncompressed_max_size 128 * 1024 * 1024
 
   def create(files) do
     files = for {path, contents} <- files, do: {String.to_charlist(path), contents}
