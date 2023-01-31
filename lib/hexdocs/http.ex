@@ -76,7 +76,7 @@ defmodule Hexdocs.HTTP do
   end
 
   defp do_retry(fun, service, times, reason) do
-    Logger.warn("#{service} API ERROR: #{inspect(reason)}")
+    Logger.warning("#{service} API ERROR: #{inspect(reason)}")
 
     if times + 1 < @max_retry_times do
       sleep = trunc(:math.pow(3, times) * @base_sleep_time)

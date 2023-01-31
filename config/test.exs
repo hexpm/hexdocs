@@ -22,4 +22,4 @@ config :hexdocs, :docs_public_bucket, name: "hexdocs-public-staging"
 
 config :goth, config: %{"project_id" => "hexdocs"}
 
-config :logger, level: :warn
+config :logger, level: :warning

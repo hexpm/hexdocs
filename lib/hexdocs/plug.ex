@@ -217,14 +217,14 @@ defmodule Hexdocs.Plug do
             {:cont, conn}
 
           {:error, reason} ->
-            Logger.warn("Streaming sink error: #{inspect(reason)}")
+            Logger.warning("Streaming sink error: #{inspect(reason)}")
             {:halt, conn}
         end
 
       {:error, reason}, conn ->
         # We stop streaming before sending the full body but cowboy
         # will clean up the connection for us
-        Logger.warn("Streaming source error: #{inspect(reason)}")
+        Logger.warning("Streaming source error: #{inspect(reason)}")
         {:halt, conn}
     end)
   end

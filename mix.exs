@@ -32,6 +32,7 @@ defmodule Hexdocs.MixProject do
       {:logster, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:rollbax, "~> 0.11.0"},
+      {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
       {:sweet_xml, "~> 0.6.5"},
       {:hex_core, "~> 0.7.0"},
       {:mox, "~> 1.0", only: :test}

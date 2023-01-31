@@ -1,5 +1,5 @@
 defmodule Hexdocs.QueueTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case
   alias Hexdocs.{HexpmMock, Store}
 
   @bucket :docs_private_bucket

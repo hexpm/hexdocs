@@ -2,7 +2,6 @@ defmodule Hexdocs.Application do
   use Application
 
   require Logger
-  alias Hexdocs.Queue, warn: false
 
   def start(_type, _args) do
     setup_tmp_dir()
