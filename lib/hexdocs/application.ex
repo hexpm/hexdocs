@@ -11,6 +11,8 @@ defmodule Hexdocs.Application do
     Logger.info("Running Cowboy with #{inspect(cowboy_options)}")
 
     children = [
+      {Task.Supervisor, name: Hexdocs.Tasks},
+      {Hexdocs.Debouncer, name: Hexdocs.Debouncer},
       goth_spec(),
       Plug.Cowboy.child_spec(scheme: :http, plug: Hexdocs.Plug, options: cowboy_options),
       Hexdocs.Queue

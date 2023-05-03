@@ -3,6 +3,7 @@ defmodule Hexdocs.Queue do
   require Logger
 
   @ignore_packages ~w(eex elixir ex_unit iex logger mix hex)
+  @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
 
   def start_link(_opts) do
     url = Application.fetch_env!(:hexdocs, :queue_id)
@@ -159,8 +160,10 @@ defmodule Hexdocs.Queue do
   defp update_index_sitemap("hexpm", key) do
     Logger.info("UPDATING INDEX SITEMAP #{key}")
 
-    body = Hexdocs.Hexpm.hexdocs_sitemap()
-    Hexdocs.Bucket.upload_index_sitemap(body)
+    Hexdocs.Debouncer.debounce(Hexdocs.Debouncer, :sitemap_index, @gcs_put_debounce, fn ->
+      body = Hexdocs.Hexpm.hexdocs_sitemap()
+      Hexdocs.Bucket.upload_index_sitemap(body)
+    end)
 
     Logger.info("UPDATED INDEX SITEMAP #{key}")
   end
