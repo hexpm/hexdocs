@@ -2,7 +2,6 @@ defmodule Hexdocs.Store.GS do
   @behaviour Hexdocs.Store.Docs
 
   @gs_xml_url "https://storage.googleapis.com"
-  @oauth_scope "https://www.googleapis.com/auth/devstorage.read_write"
 
   import SweetXml, only: [sigil_x: 2]
 
@@ -123,7 +122,7 @@ defmodule Hexdocs.Store.GS do
   end
 
   defp headers() do
-    {:ok, token} = Goth.Token.for_scope(@oauth_scope)
+    {:ok, token} = Goth.fetch(Hexdocs.Goth)
     [{"authorization", "#{token.type} #{token.token}"}]
   end
 

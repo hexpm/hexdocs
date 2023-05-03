@@ -5,7 +5,7 @@ defmodule Hexdocs.MixProject do
     [
       app: :hexdocs,
       version: "0.1.0",
-      elixir: "~> 1.8",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
       releases: releases(),
       deps: deps()
@@ -21,8 +21,8 @@ defmodule Hexdocs.MixProject do
 
   defp deps do
     [
-      {:broadway, "~> 0.6.0"},
-      {:broadway_sqs, "~> 0.6.0"},
+      {:broadway, "~> 1.0"},
+      {:broadway_sqs, "~> 0.7.0"},
       {:ex_aws, "~> 2.0"},
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws_sqs, "~> 3.0"},
@@ -33,8 +33,8 @@ defmodule Hexdocs.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:rollbax, "~> 0.11.0"},
       {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
-      {:sweet_xml, "~> 0.6.5"},
-      {:hex_core, "~> 0.7.0"},
+      {:sweet_xml, "~> 0.7.0"},
+      {:hex_core, "~> 0.9.0", only: [:dev, :test]},
       {:mox, "~> 1.0", only: :test}
     ]
   end
