@@ -8,6 +8,7 @@ defmodule Hexdocs.Queue do
   def start_link(_opts) do
     url = Application.fetch_env!(:hexdocs, :queue_id)
     producer = Application.fetch_env!(:hexdocs, :queue_producer)
+    concurrency = Application.fetch_env!(:hexdocs, :queue_concurrency)
 
     Broadway.start_link(__MODULE__,
       name: __MODULE__,
@@ -23,9 +24,9 @@ defmodule Hexdocs.Queue do
       ],
       processors: [
         default: [
-          concurrency: 2,
-          min_demand: 1,
-          max_demand: 2
+          concurrency: concurrency,
+          min_demand: 0,
+          max_demand: concurrency
         ]
       ]
     )
