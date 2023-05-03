@@ -10,7 +10,7 @@ config :hexdocs,
   session_key_base: System.fetch_env!("HEXDOCS_SESSION_KEY_BASE"),
   session_signing_salt: System.fetch_env!("HEXDOCS_SESSION_SIGNING_SALT"),
   session_encryption_salt: System.fetch_env!("HEXDOCS_SESSION_ENCRYPTION_SALT"),
-  queue_concurrency: System.fetch_env!("HEXDOCS_QUEUE_CONCURRENCY"),
+  queue_concurrency: String.to_integer(System.fetch_env!("HEXDOCS_QUEUE_CONCURRENCY")),
   host: System.fetch_env!("HEXDOCS_HOST")
 
 config :hexdocs, :repo_bucket, name: System.fetch_env!("HEXDOCS_REPO_BUCKET")
