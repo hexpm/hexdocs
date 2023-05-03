@@ -147,6 +147,7 @@ defmodule Hexdocs.Bucket do
       max_concurrency: 10,
       timeout: 10_000
     )
+    |> Hexdocs.Utils.raise_async_stream_error()
     |> Stream.run()
   end
 
