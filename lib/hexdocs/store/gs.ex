@@ -75,6 +75,7 @@ defmodule Hexdocs.Store.GS do
       max_concurrency: 10,
       timeout: 10_000
     )
+    |> Hexdocs.Utils.raise_async_stream_error()
     |> Stream.run()
   end
 
@@ -114,7 +115,7 @@ defmodule Hexdocs.Store.GS do
     items = SweetXml.xpath(doc, ~x"/ListBucketResult/Contents/Key/text()"ls)
     marker = if marker != "", do: marker
 
-    {items, marker}
+    {Enum.map(items, &URI.decode/1), marker}
   end
 
   defp filter_nil_values(keyword) do
@@ -137,6 +138,6 @@ defmodule Hexdocs.Store.GS do
   end
 
   defp url(bucket, key) do
-    url(bucket) <> "/" <> key
+    url(bucket) <> "/" <> URI.encode(key)
   end
 end
