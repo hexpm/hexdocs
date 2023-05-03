@@ -39,4 +39,11 @@ defmodule Hexdocs.Utils do
         Version.compare(version, latest_version) in [:eq, :gt]
     end
   end
+
+  def raise_async_stream_error(stream) do
+    Stream.each(stream, fn
+      {:ok, _} -> :ok
+      {:exit, {error, stacktrace}} -> reraise(error, stacktrace)
+    end)
+  end
 end
