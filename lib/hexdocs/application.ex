@@ -11,12 +11,29 @@ defmodule Hexdocs.Application do
     Logger.info("Running Cowboy with #{inspect(cowboy_options)}")
 
     children = [
+      goth_spec(),
       Plug.Cowboy.child_spec(scheme: :http, plug: Hexdocs.Plug, options: cowboy_options),
       Hexdocs.Queue
     ]
 
     opts = [strategy: :one_for_one, name: Hexdocs.Supervisor]
     Supervisor.start_link(children, opts)
+  end
+
+  if Mix.env() == :prod do
+    defp goth_spec() do
+      credentials =
+        "HEXDOCS_GCP_CREDENTIALS"
+        |> System.fetch_env!()
+        |> Jason.decode!()
+
+      options = [scopes: ["https://www.googleapis.com/auth/devstorage.read_write"]]
+      {Goth, name: Hexdocs.Goth, source: {:service_account, credentials, options}}
+    end
+  else
+    defp goth_spec() do
+      Supervisor.child_spec({Task, fn -> :ok end}, id: :goth)
+    end
   end
 
   defp setup_tmp_dir() do
