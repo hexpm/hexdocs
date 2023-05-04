@@ -9,7 +9,7 @@ defmodule Hexdocs do
 
   def process_all_objects() do
     (Hexdocs.Store.list(:repo_bucket, "docs/") ++ Hexdocs.Store.list(:repo_bucket, "repos/"))
-    |> Enum.shuffle
+    |> Enum.shuffle()
     |> batched_send()
   end
 

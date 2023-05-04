@@ -1,4 +1,6 @@
 defmodule Hexdocs.Tar do
+  require Logger
+
   @zlib_magic 16 + 15
   @compressed_max_size 16 * 1024 * 1024
   @uncompressed_max_size 128 * 1024 * 1024
@@ -9,10 +11,14 @@ defmodule Hexdocs.Tar do
     tarball
   end
 
-  def unpack(body) do
+  def unpack(body, opts \\ []) do
+    repository = Keyword.get(opts, :repository, "UNKNOWN")
+    package = Keyword.get(opts, :package, "UNKNOWN")
+    version = Keyword.get(opts, :version, "UNKNOWN")
+
     with {:ok, data} <- unzip(body),
          {:ok, files} <- :erl_tar.extract({:binary, data}, [:memory]),
-         files = Enum.map(files, fn {path, data} -> {List.to_string(path), data} end),
+         files = fix_paths(repository, package, version, files),
          :ok <- check_version_dirs(files),
          do: {:ok, files}
   end
@@ -64,4 +70,31 @@ defmodule Hexdocs.Tar do
       {:error, "root file or directory name not allowed to match a semver version"}
     end
   end
+
+  defp fix_paths(repository, package, version, files) do
+    Enum.flat_map(files, fn {path, data} ->
+      case safe_path(path) do
+        {:ok, path} ->
+          [{path, data}]
+
+        :error ->
+          Logger.error("Unsafe path from #{repository}/#{package} #{version}: #{path}")
+          []
+      end
+    end)
+  end
+
+  defp safe_path(path) do
+    case safe_path(Path.split(path), []) do
+      {:ok, path} -> {:ok, Path.join(path)}
+      :error -> :error
+    end
+  end
+
+  defp safe_path(["." | rest], acc), do: safe_path(rest, acc)
+  defp safe_path([".." | rest], [_prev | acc]), do: safe_path(rest, acc)
+  defp safe_path([".." | _rest], []), do: :error
+  defp safe_path([path | rest], acc), do: safe_path(rest, [path | acc])
+  defp safe_path([], []), do: :error
+  defp safe_path([], acc), do: {:ok, Enum.reverse(acc)}
 end
