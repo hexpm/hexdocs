@@ -35,6 +35,9 @@ defmodule Hexdocs.Tar do
       uncompressed = unzip_inflate(stream, "", 0, :zlib.safeInflate(stream, data))
       :zlib.inflateEnd(stream)
       uncompressed
+    catch
+      :error, :data_error ->
+        {:error, "invalid gzip"}
     after
       :zlib.close(stream)
     end
