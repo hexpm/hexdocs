@@ -8,8 +8,9 @@ defmodule Hexdocs do
   end
 
   def process_all_objects() do
-    batched_send(Hexdocs.Store.list(:repo_bucket, "docs/"))
-    batched_send(Hexdocs.Store.list(:repo_bucket, "repos/"))
+    (Hexdocs.Store.list(:repo_bucket, "docs/") ++ Hexdocs.Store.list(:repo_bucket, "repos/"))
+    |> Enum.shuffle
+    |> batched_send()
   end
 
   defp build_message(key) do
