@@ -1,14 +1,14 @@
 defmodule Hexdocs.Debouncer do
   use GenServer
 
-  @timeout_buffer 5000
+  @timeout 60_000
 
   def start_link(opts \\ []) do
     GenServer.start_link(__MODULE__, [], Keyword.take(opts, [:name]))
   end
 
   def debounce(server, key, timeout, fun) do
-    case GenServer.call(server, {:debounce, key}, timeout + @timeout_buffer) do
+    case GenServer.call(server, {:debounce, key}, @timeout) do
       :go ->
         result = {:ok, fun.()}
         Process.send_after(server, {:deadline, key}, timeout)
