@@ -11,6 +11,10 @@ defmodule Hexdocs.TarTest do
     assert {"foo.bar", "contents"} in files
   end
 
+  test "invalid gzip" do
+    assert Tar.unpack("") == {:error, "invalid gzip"}
+  end
+
   test "do not allow root files/directories with version names" do
     reason = "root file or directory name not allowed to match a semver version"
 

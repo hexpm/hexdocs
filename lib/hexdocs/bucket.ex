@@ -91,15 +91,22 @@ defmodule Hexdocs.Bucket do
       deleting_latest_version? && new_latest_version ->
         key = build_key(repository, package, new_latest_version)
         body = Hexdocs.Store.get(:repo_bucket, key)
-        {:ok, files} = Hexdocs.Tar.unpack(body)
 
-        upload_files = list_upload_files(repository, package, new_latest_version, files, :both)
-        paths = MapSet.new(upload_files, &elem(&1, 0))
-        update_versions = [version, new_latest_version]
+        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
+          {:ok, files} ->
+            upload_files =
+              list_upload_files(repository, package, new_latest_version, files, :both)
 
-        upload_new_files(upload_files)
-        delete_old_docs(repository, package, update_versions, paths, :both)
-        purge_hexdocs_cache(repository, package, update_versions, :both)
+            paths = MapSet.new(upload_files, &elem(&1, 0))
+            update_versions = [version, new_latest_version]
+
+            upload_new_files(upload_files)
+            delete_old_docs(repository, package, update_versions, paths, :both)
+            purge_hexdocs_cache(repository, package, update_versions, :both)
+
+          {:error, reason} ->
+            Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+        end
 
       deleting_latest_version? ->
         delete_old_docs(repository, package, [version], [], :both)

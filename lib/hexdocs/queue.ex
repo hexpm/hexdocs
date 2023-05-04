@@ -53,12 +53,18 @@ defmodule Hexdocs.Queue do
     Logger.info("#{key}: start")
 
     case key_components(key) do
-      {:ok, repository, package, _version} ->
+      {:ok, repository, package, version} ->
         body = Hexdocs.Store.get(:repo_bucket, key)
-        {:ok, files} = Hexdocs.Tar.unpack(body)
-        update_index_sitemap(repository, key)
-        update_package_sitemap(repository, key, package, files)
-        Logger.info("#{key}: done")
+
+        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
+          {:ok, files} ->
+            update_index_sitemap(repository, key)
+            update_package_sitemap(repository, key, package, files)
+            Logger.info("#{key}: done")
+
+          {:error, reason} ->
+            Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+        end
 
       :error ->
         Logger.info("#{key}: skip")
@@ -81,21 +87,25 @@ defmodule Hexdocs.Queue do
       {:ok, repository, package, version} ->
         body = Hexdocs.Store.get(:repo_bucket, key)
 
-        # TODO: Handle errors
-        {:ok, files} = Hexdocs.Tar.unpack(body)
-        files = rewrite_files(files)
-        version = Version.parse!(version)
-        all_versions = all_versions(repository, package)
+        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
+          {:ok, files} ->
+            files = rewrite_files(files)
+            version = Version.parse!(version)
+            all_versions = all_versions(repository, package)
 
-        Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
+            Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
 
-        if Hexdocs.Utils.latest_version?(version, all_versions) do
-          update_index_sitemap(repository, key)
-          update_package_sitemap(repository, key, package, files)
+            if Hexdocs.Utils.latest_version?(version, all_versions) do
+              update_index_sitemap(repository, key)
+              update_package_sitemap(repository, key, package, files)
+            end
+
+            elapsed = System.os_time(:millisecond) - start
+            Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
+
+          {:error, reason} ->
+            Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
         end
-
-        elapsed = System.os_time(:millisecond) - start
-        Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
 
       :error ->
         :skip
