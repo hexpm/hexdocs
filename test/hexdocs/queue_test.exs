@@ -61,6 +61,34 @@ defmodule Hexdocs.QueueTest do
       assert Store.get(@public_bucket, "#{test}/sitemap.xml")
     end
 
+    @tag :capture_log
+    test "safe paths", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn repo, package ->
+        assert repo == "hexpm"
+        assert package == "#{test}"
+
+        %{"releases" => []}
+      end)
+
+      tar =
+        Hexdocs.Tar.create([
+          {"dir/./foo.html", ""},
+          {"dir/../bar.html", ""},
+          {"dir/../../baz.html", ""}
+        ])
+
+      key = "docs/#{test}-1.0.0.tar.gz"
+      Store.put!(:repo_bucket, key, tar)
+
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+
+      files = Store.list(@public_bucket, "#{test}/1.0.0/")
+      assert length(files) == 2
+      assert Store.get(@public_bucket, "#{test}/dir/foo.html")
+      assert Store.get(@public_bucket, "#{test}/bar.html")
+    end
+
     test "overwrite main docs with newer versions", %{test: test} do
       Mox.expect(HexpmMock, :get_package, fn repo, package ->
         assert repo == "queuetest"
