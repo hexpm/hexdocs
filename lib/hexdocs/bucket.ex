@@ -1,6 +1,8 @@
 defmodule Hexdocs.Bucket do
   require Logger
 
+  @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
+
   def upload_index_sitemap(sitemap) do
     upload_sitemap("sitemap", "sitemap.xml", sitemap)
   end
@@ -32,14 +34,23 @@ defmodule Hexdocs.Bucket do
 
   def upload(repository, package, version, all_versions, files) do
     latest_version? = Hexdocs.Utils.latest_version?(version, all_versions)
-    docs_config = build_docs_config(repository, package, version, all_versions)
     upload_type = upload_type(latest_version?)
     upload_files = list_upload_files(repository, package, version, files, upload_type)
-    upload_files = [docs_config | upload_files]
     paths = MapSet.new(upload_files, &elem(&1, 0))
 
     upload_new_files(upload_files)
     delete_old_docs(repository, package, [version], paths, upload_type)
+
+    Hexdocs.Debouncer.debounce(
+      Hexdocs.Debouncer,
+      {:docs_config, repository, package},
+      @gcs_put_debounce,
+      fn ->
+        docs_config = build_docs_config(repository, package, version, all_versions)
+        upload_new_files([docs_config])
+      end
+    )
+
     purge_hexdocs_cache(repository, package, [version], upload_type)
     purge([docs_config_cdn_key(repository, package)])
   end
