@@ -36,7 +36,7 @@ defmodule Hexdocs.CDN.Fastly do
 
     body = Jason.encode!(body)
 
-    Hexdocs.HTTP.retry("fastly", fn -> :hackney.post(url, headers, body, []) end)
+    Hexdocs.HTTP.retry("fastly", url, fn -> :hackney.post(url, headers, body, []) end)
     |> read_body()
   end
 

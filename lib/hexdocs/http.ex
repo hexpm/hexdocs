@@ -19,7 +19,7 @@ defmodule Hexdocs.HTTP do
   end
 
   def put(url, headers, body) do
-    :hackney.put(url, headers, body, [recv_timeout: 10_000])
+    :hackney.put(url, headers, body, recv_timeout: 10_000)
     |> read_response()
   end
 
@@ -58,30 +58,30 @@ defmodule Hexdocs.HTTP do
     other
   end
 
-  def retry(service, fun) do
-    retry(fun, service, 0)
+  def retry(service, url, fun) do
+    retry(fun, service, url, 0)
   end
 
-  defp retry(fun, service, times) do
+  defp retry(fun, service, url, times) do
     case fun.() do
       {:ok, status, _headers, _body} when status in 500..599 or status == 429 ->
-        do_retry(fun, service, times, "status #{status}")
+        do_retry(fun, service, url, times, "status #{status}")
 
       {:error, reason} ->
-        do_retry(fun, service, times, reason)
+        do_retry(fun, service, url, times, reason)
 
       result ->
         result
     end
   end
 
-  defp do_retry(fun, service, times, reason) do
-    Logger.warning("#{service} API ERROR: #{inspect(reason)}")
+  defp do_retry(fun, service, url, times, reason) do
+    Logger.warning("#{service} API ERROR #{url}: #{inspect(reason)}")
 
     if times + 1 < @max_retry_times do
       sleep = trunc(:math.pow(3, times) * @base_sleep_time)
       :timer.sleep(sleep)
-      retry(fun, service, times + 1)
+      retry(fun, service, url, times + 1)
     else
       {:error, reason}
     end

@@ -11,7 +11,7 @@ defmodule Hexdocs.Hexpm.Impl do
     url = url("/api/auth?domain=docs&resource=#{organization}")
     fun = fn -> Hexdocs.HTTP.get(url, headers(key)) end
 
-    case Hexdocs.HTTP.retry("hexpm", fun) do
+    case Hexdocs.HTTP.retry("hexpm", url, fun) do
       {:ok, status, _headers, _body} when status in 200..299 ->
         :ok
 
@@ -28,10 +28,11 @@ defmodule Hexdocs.Hexpm.Impl do
 
   def get_package(repo, package) do
     key = Application.get_env(:hexdocs, :hexpm_secret)
+    url = url("/api/repos/#{repo}/packages/#{package}")
 
     result =
-      Hexdocs.HTTP.retry("hexpm", fn ->
-        Hexdocs.HTTP.get(url("/api/repos/#{repo}/packages/#{package}"), headers(key))
+      Hexdocs.HTTP.retry("hexpm", url, fn ->
+        Hexdocs.HTTP.get(url, headers(key))
       end)
 
     case result do
@@ -41,9 +42,11 @@ defmodule Hexdocs.Hexpm.Impl do
   end
 
   def hexdocs_sitemap() do
+    url = url("/docs_sitemap.xml")
+
     {:ok, 200, _headers, body} =
-      Hexdocs.HTTP.retry("hexpm", fn ->
-        Hexdocs.HTTP.get(url("/docs_sitemap.xml"), [])
+      Hexdocs.HTTP.retry("hexpm", url, fn ->
+        Hexdocs.HTTP.get(url, [])
       end)
 
     body

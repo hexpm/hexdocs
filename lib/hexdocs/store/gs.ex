@@ -12,7 +12,8 @@ defmodule Hexdocs.Store.GS do
   def head_page(bucket, key, _opts) do
     url = url(bucket, key)
 
-    {:ok, status, headers} = Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.head(url, headers()) end)
+    {:ok, status, headers} =
+      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.head(url, headers()) end)
 
     {status, headers}
   end
@@ -21,7 +22,7 @@ defmodule Hexdocs.Store.GS do
     url = url(bucket, key)
 
     {:ok, status, headers, body} =
-      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end)
+      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.get(url, headers()) end)
 
     {status, headers, body}
   end
@@ -30,7 +31,7 @@ defmodule Hexdocs.Store.GS do
     url = url(bucket, key)
 
     {:ok, status, headers, stream} =
-      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get_stream(url, headers()) end)
+      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.get_stream(url, headers()) end)
 
     {status, headers, stream}
   end
@@ -47,7 +48,7 @@ defmodule Hexdocs.Store.GS do
     url = url(bucket, key)
     headers = filter_nil_values(headers)
 
-    Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.put(url, headers, blob) end)
+    Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.put(url, headers, blob) end)
   end
 
   def put!(bucket, key, blob, opts) do
@@ -63,7 +64,7 @@ defmodule Hexdocs.Store.GS do
     headers = filter_nil_values(headers)
 
     {:ok, 200, _headers, _body} =
-      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.put(url, headers, blob) end)
+      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.put(url, headers, blob) end)
 
     :ok
   end
@@ -83,7 +84,7 @@ defmodule Hexdocs.Store.GS do
     url = url(bucket, key)
 
     {:ok, 204, _headers, _body} =
-      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.delete(url, headers()) end)
+      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.delete(url, headers()) end)
 
     :ok
   end
@@ -108,7 +109,7 @@ defmodule Hexdocs.Store.GS do
     url = url(bucket) <> "?prefix=#{prefix}&marker=#{marker}"
 
     {:ok, 200, _headers, body} =
-      Hexdocs.HTTP.retry("gs", fn -> Hexdocs.HTTP.get(url, headers()) end)
+      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.get(url, headers()) end)
 
     doc = SweetXml.parse(body)
     marker = SweetXml.xpath(doc, ~x"/ListBucketResult/NextMarker/text()"s)
