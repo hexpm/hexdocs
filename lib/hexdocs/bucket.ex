@@ -155,7 +155,14 @@ defmodule Hexdocs.Bucket do
     bucket = bucket(public?(repository))
     # Add "/" so that we don't get prefix matches, for example phoenix
     # would match phoenix_html
-    existing_keys = Hexdocs.Store.list(bucket, repository_path(repository, "#{package}/"))
+    existing_keys =
+      case {upload_type, versions} do
+        {:both, _} ->
+          Hexdocs.Store.list(bucket, repository_path(repository, "#{package}/"))
+
+        {:versioned, [version]} ->
+          Hexdocs.Store.list(bucket, repository_path(repository, "#{package}/#{version}/"))
+      end
 
     keys_to_delete =
       Enum.filter(
