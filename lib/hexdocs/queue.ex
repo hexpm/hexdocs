@@ -16,7 +16,7 @@ defmodule Hexdocs.Queue do
         module: {
           producer,
           queue_url: url,
-          max_number_of_messages: concurrency * 2,
+          max_number_of_messages: concurrency,
           wait_time_seconds: 10,
           visibility_timeout: 300
         },
@@ -26,7 +26,7 @@ defmodule Hexdocs.Queue do
         default: [
           concurrency: concurrency,
           min_demand: 0,
-          max_demand: concurrency
+          max_demand: 1
         ]
       ]
     )
@@ -73,6 +73,7 @@ defmodule Hexdocs.Queue do
   end
 
   defp handle_record(%{"eventName" => "ObjectCreated:" <> _, "s3" => s3}) do
+    start = System.os_time(:millisecond)
     key = s3["object"]["key"]
     Logger.info("OBJECT CREATED #{key}")
 
@@ -93,7 +94,8 @@ defmodule Hexdocs.Queue do
           update_package_sitemap(repository, key, package, files)
         end
 
-        Logger.info("FINISHED UPLOADING DOCS #{key}")
+        elapsed = System.os_time(:millisecond) - start
+        Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
 
       :error ->
         :skip

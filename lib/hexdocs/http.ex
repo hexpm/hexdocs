@@ -1,6 +1,6 @@
 defmodule Hexdocs.HTTP do
   @max_retry_times 5
-  @base_sleep_time 100
+  @base_sleep_time 200
 
   require Logger
 
@@ -19,7 +19,7 @@ defmodule Hexdocs.HTTP do
   end
 
   def put(url, headers, body) do
-    :hackney.put(url, headers, body)
+    :hackney.put(url, headers, body, [recv_timeout: 10_000])
     |> read_response()
   end
 
@@ -64,7 +64,7 @@ defmodule Hexdocs.HTTP do
 
   defp retry(fun, service, times) do
     case fun.() do
-      {:ok, status, _headers, _body} when status in 500..599 ->
+      {:ok, status, _headers, _body} when status in 500..599 or status == 429 ->
         do_retry(fun, service, times, "status #{status}")
 
       {:error, reason} ->

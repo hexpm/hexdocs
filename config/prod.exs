@@ -5,7 +5,7 @@ config :hexdocs,
   store_impl: Hexdocs.Store.Impl,
   cdn_impl: Hexdocs.CDN.Fastly,
   queue_producer: BroadwaySQS.Producer,
-  gcs_put_debounce: 1000
+  gcs_put_debounce: 3000
 
 config :hexdocs, :repo_bucket, implementation: Hexdocs.Store.S3
 
