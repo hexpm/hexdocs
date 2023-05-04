@@ -16,9 +16,9 @@ defmodule Hexdocs.Queue do
         module: {
           producer,
           queue_url: url,
-          max_number_of_messages: 8,
+          max_number_of_messages: concurrency * 2,
           wait_time_seconds: 10,
-          visibility_timeout: 120
+          visibility_timeout: 300
         },
         concurrency: 1
       ],
