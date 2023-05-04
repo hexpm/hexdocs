@@ -17,8 +17,7 @@ defmodule Hexdocs.FileRewriter do
   end
 
   defp add_elixir_org_link(content, path) do
-    if String.ends_with?(path, ".html") and not String.contains?(content, @link_addition) and
-         String.contains?(content, @link_hooks) do
+    if String.ends_with?(path, ".html") and not String.contains?(content, @link_addition) do
       String.replace(content, @link_hooks, &(&1 <> " for the " <> @link_addition))
     else
       content
