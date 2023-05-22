@@ -56,7 +56,7 @@ defmodule Hexdocs.Bucket do
     purge([docs_config_cdn_key(repository, package)])
   end
 
-  # TODO: don't include retired versions?
+  # For Elixir and Hex we use the docs_config.js included in the tarball
   defp build_docs_config(repository, package, _version, _all_versions, files)
        when package in @special_packages do
     path = "docs_config.js"
@@ -66,6 +66,7 @@ defmodule Hexdocs.Bucket do
     {unversioned_path, cdn_key, data, public?(repository)}
   end
 
+  # TODO: don't include retired versions?
   defp build_docs_config(repository, package, version, all_versions, _files) do
     versions =
       if version in all_versions do
@@ -87,6 +88,10 @@ defmodule Hexdocs.Bucket do
     cdn_key = docs_config_cdn_key(repository, package)
     data = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
     {unversioned_path, cdn_key, data, public?(repository)}
+  end
+
+  defp docs_config_cdn_key(repository, package) do
+    "docspage/#{repository_cdn_key(repository)}#{package}/docs_config.js"
   end
 
   def delete(repository, package, version, all_versions) do
