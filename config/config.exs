@@ -15,7 +15,8 @@ config :hexdocs,
   session_signing_salt: "QftsNdJO",
   session_encryption_salt: "QftsNdJO",
   host: "localhost",
-  gcs_put_debounce: 0
+  gcs_put_debounce: 0,
+  special_packages: ~w(eex elixir ex_unit iex logger mix hex)
 
 config :hexdocs, :repo_bucket, name: "staging.s3.hex.pm"
 

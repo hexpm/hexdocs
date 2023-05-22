@@ -1,6 +1,7 @@
 defmodule Hexdocs.Bucket do
   require Logger
 
+  @special_packages Application.compile_env!(:hexdocs, :special_packages)
   @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
 
   def upload_index_sitemap(sitemap) do
@@ -46,7 +47,7 @@ defmodule Hexdocs.Bucket do
       {:docs_config, repository, package},
       @gcs_put_debounce,
       fn ->
-        docs_config = build_docs_config(repository, package, version, all_versions)
+        docs_config = build_docs_config(repository, package, version, all_versions, files)
         upload_new_files([docs_config])
       end
     )
@@ -56,7 +57,16 @@ defmodule Hexdocs.Bucket do
   end
 
   # TODO: don't include retired versions?
-  defp build_docs_config(repository, package, version, all_versions) do
+  defp build_docs_config(repository, package, _version, _all_versions, files)
+       when package in @special_packages do
+    path = "docs_config.js"
+    unversioned_path = repository_path(repository, Path.join([package, path]))
+    cdn_key = docs_config_cdn_key(repository, package)
+    data = Map.fetch!(files, "docs_config.js")
+    {unversioned_path, cdn_key, data, public?(repository)}
+  end
+
+  defp build_docs_config(repository, package, version, all_versions, _files) do
     versions =
       if version in all_versions do
         all_versions
@@ -77,10 +87,6 @@ defmodule Hexdocs.Bucket do
     cdn_key = docs_config_cdn_key(repository, package)
     data = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
     {unversioned_path, cdn_key, data, public?(repository)}
-  end
-
-  defp docs_config_cdn_key(repository, package) do
-    "docspage/#{repository_cdn_key(repository)}#{package}/docs_config.js"
   end
 
   def delete(repository, package, version, all_versions) do
@@ -127,20 +133,26 @@ defmodule Hexdocs.Bucket do
   end
 
   defp list_upload_files(repository, package, version, files, upload_type) do
-    Enum.flat_map(files, fn {path, data} ->
-      versioned_path = repository_path(repository, Path.join([package, to_string(version), path]))
-      cdn_key = docspage_versioned_cdn_key(repository, package, version)
-      versioned = {versioned_path, cdn_key, data, public?(repository)}
+    Enum.flat_map(files, fn
+      {"docs_config.js", _data} ->
+        []
 
-      unversioned_path = repository_path(repository, Path.join([package, path]))
-      cdn_key = docspage_unversioned_cdn_key(repository, package)
-      unversioned = {unversioned_path, cdn_key, data, public?(repository)}
+      {path, data} ->
+        versioned_path =
+          repository_path(repository, Path.join([package, to_string(version), path]))
 
-      case upload_type do
-        :both -> [versioned, unversioned]
-        :versioned -> [versioned]
-        :unversioned -> [unversioned]
-      end
+        cdn_key = docspage_versioned_cdn_key(repository, package, version)
+        versioned = {versioned_path, cdn_key, data, public?(repository)}
+
+        unversioned_path = repository_path(repository, Path.join([package, path]))
+        cdn_key = docspage_unversioned_cdn_key(repository, package)
+        unversioned = {unversioned_path, cdn_key, data, public?(repository)}
+
+        case upload_type do
+          :both -> [versioned, unversioned]
+          :versioned -> [versioned]
+          :unversioned -> [unversioned]
+        end
     end)
   end
 

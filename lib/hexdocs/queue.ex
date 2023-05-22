@@ -2,7 +2,7 @@ defmodule Hexdocs.Queue do
   use Broadway
   require Logger
 
-  @ignore_packages ~w(eex elixir ex_unit iex logger mix hex)
+  @special_packages Application.compile_env!(:hexdocs, :special_packages)
   @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
 
   def start_link(_opts) do
@@ -117,13 +117,16 @@ defmodule Hexdocs.Queue do
     Logger.info("OBJECT DELETED #{key}")
 
     case key_components(key) do
-      {:ok, repository, package, version} ->
+      {:ok, repository, package, version} when package not in @special_packages ->
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
         update_index_sitemap(repository, key)
         Logger.info("FINISHED DELETING DOCS #{key}")
         :ok
+
+      {:ok, _repository, _package, _version} ->
+        :skip
 
       :error ->
         :skip
@@ -137,10 +140,8 @@ defmodule Hexdocs.Queue do
         {:ok, repository, package, version}
 
       ["docs", file] ->
-        case filename_to_release(file) do
-          {package, _version} when package in @ignore_packages -> :error
-          {package, version} -> {:ok, "hexpm", package, version}
-        end
+        {package, version} = filename_to_release(file)
+        {:ok, "hexpm", package, version}
 
       _ ->
         :error
@@ -157,6 +158,10 @@ defmodule Hexdocs.Queue do
     Enum.map(files, fn {path, content} ->
       {path, Hexdocs.FileRewriter.run(path, content)}
     end)
+  end
+
+  defp all_versions(_repository, package) when package in @special_packages do
+    []
   end
 
   defp all_versions(repository, package) do
@@ -209,7 +214,6 @@ defmodule Hexdocs.Queue do
       {package, version} = filename_to_release(path)
       {path, package, version}
     end)
-    |> Stream.reject(fn {_, package, _} -> package in @ignore_packages end)
     |> Stream.chunk_by(fn {_, package, _} -> package end)
     |> Stream.flat_map(fn entries ->
       entries = Enum.sort_by(entries, fn {_, _, version} -> version end, {:desc, Version})
