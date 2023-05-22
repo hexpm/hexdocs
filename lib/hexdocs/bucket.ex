@@ -62,7 +62,7 @@ defmodule Hexdocs.Bucket do
     path = "docs_config.js"
     unversioned_path = repository_path(repository, Path.join([package, path]))
     cdn_key = docs_config_cdn_key(repository, package)
-    data = Map.fetch!(files, "docs_config.js")
+    {"docs_config.js", data} = List.keyfind(files, "docs_config.js", 0)
     {unversioned_path, cdn_key, data, public?(repository)}
   end
 
