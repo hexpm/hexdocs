@@ -195,6 +195,64 @@ defmodule Hexdocs.QueueTest do
       assert sitemap =~ "<loc>http://localhost/#{test}/Foo.html</loc>"
       refute sitemap =~ "logo.png"
     end
+
+    test "build docs_config.js", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn repo, package ->
+        assert repo == "hexpm"
+        assert package == "#{test}"
+
+        %{
+          "releases" => [
+            %{"version" => "1.0.0", "has_docs" => true},
+            %{"version" => "2.0.0", "has_docs" => false},
+            %{"version" => "3.0.0", "has_docs" => true}
+          ]
+        }
+      end)
+
+      key = "docs/#{test}-3.0.0.tar.gz"
+      tar = Hexdocs.Tar.create([{"index.html", "contents"}, {"docs_config.js", "ignore"}])
+      Store.put!(:repo_bucket, key, tar)
+
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+
+      files = Store.list(@public_bucket, "#{test}/")
+      assert length(files) == 4
+      assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
+      assert Store.get(@public_bucket, "#{test}/3.0.0/index.html") == "contents"
+      assert Store.get(@public_bucket, "#{test}/sitemap.xml")
+
+      assert "var versionNodes = " <> json = Store.get(@public_bucket, "#{test}/docs_config.js")
+      json = String.trim_trailing(json, ";")
+
+      assert Jason.decode!(json) == [
+               %{
+                 "url" => "http://localhost/test put object build docs_config.js/3.0.0",
+                 "version" => "v3.0.0"
+               },
+               %{
+                 "url" => "http://localhost/test put object build docs_config.js/1.0.0",
+                 "version" => "v1.0.0"
+               }
+             ]
+    end
+
+    test "use existing docs_config.js" do
+      key = "docs/elixir-1.0.0.tar.gz"
+      tar = Hexdocs.Tar.create([{"index.html", "contents"}, {"docs_config.js", "use me"}])
+      Store.put!(:repo_bucket, key, tar)
+
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+
+      files = Store.list(@public_bucket, "elixir/")
+      assert length(files) == 4
+      assert Store.get(@public_bucket, "elixir/index.html") == "contents"
+      assert Store.get(@public_bucket, "elixir/1.0.0/index.html") == "contents"
+      assert Store.get(@public_bucket, "elixir/sitemap.xml")
+      assert Store.get(@public_bucket, "elixir/docs_config.js") == "use me"
+    end
   end
 
   describe "delete object" do
@@ -358,12 +416,14 @@ defmodule Hexdocs.QueueTest do
     Store.put!(:repo_bucket, "docs/baz-2.0.0-rc.1.tar.gz", "")
     Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.1.tar.gz", "")
     Store.put!(:repo_bucket, "docs/qux-1.0.0-rc.2.tar.gz", "")
-    Store.put!(:repo_bucket, "docs/elixir-1.0.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/elixir-1.0.0.tar.gz", "")
+    Store.put!(:repo_bucket, "docs/elixir-2.0.0.tar.gz", "")
 
     assert Enum.to_list(Hexdocs.Queue.paths_for_sitemaps()) ==
              [
                "docs/bar-1.1.0.tar.gz",
                "docs/baz-1.0.0.tar.gz",
+               "docs/elixir-2.0.0.tar.gz",
                "docs/foo-1.0.0.tar.gz",
                "docs/qux-1.0.0-rc.2.tar.gz"
              ]
