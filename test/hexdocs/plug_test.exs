@@ -36,7 +36,7 @@ defmodule Hexdocs.PlugTest do
     assert recent?(get_session(conn, "key_created_at"))
   end
 
-  test "redirect to hexpm with with dead key" do
+  test "redirect to hexpm with dead key" do
     old = ~N[2018-01-01 00:00:00]
 
     conn =
