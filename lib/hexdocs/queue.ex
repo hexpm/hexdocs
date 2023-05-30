@@ -164,10 +164,6 @@ defmodule Hexdocs.Queue do
     end)
   end
 
-  defp all_versions(_repository, package) when package in @special_packages do
-    []
-  end
-
   defp all_versions(repository, package) do
     if package = Hexdocs.Hexpm.get_package(repository, package) do
       package["releases"]
