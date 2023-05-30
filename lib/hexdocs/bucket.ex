@@ -34,7 +34,7 @@ defmodule Hexdocs.Bucket do
   end
 
   def upload(repository, package, version, all_versions, files) do
-    latest_version? = Hexdocs.Utils.latest_version?(version, all_versions)
+    latest_version? = Hexdocs.Utils.latest_version?(package, version, all_versions)
     upload_type = upload_type(latest_version?)
     upload_files = list_upload_files(repository, package, version, files, upload_type)
     paths = MapSet.new(upload_files, &elem(&1, 0))
@@ -95,7 +95,7 @@ defmodule Hexdocs.Bucket do
   end
 
   def delete(repository, package, version, all_versions) do
-    deleting_latest_version? = Hexdocs.Utils.latest_version?(version, all_versions)
+    deleting_latest_version? = Hexdocs.Utils.latest_version?(package, version, all_versions)
     new_latest_version = Hexdocs.Utils.latest_version(all_versions -- [version])
 
     cond do

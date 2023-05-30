@@ -87,31 +87,29 @@ defmodule Hexdocs.Queue do
       {:ok, repository, package, version} ->
         body = Hexdocs.Store.get(:repo_bucket, key)
 
-        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
-          {:ok, files} when package in @special_packages ->
-            files = rewrite_files(files)
-            Hexdocs.Bucket.upload(repository, package, version, [], files)
-            update_index_sitemap(repository, key)
-            update_package_sitemap(repository, key, package, files)
+        {version, all_versions} =
+          if package in @special_packages do
+            {version, []}
+          else
+            {Version.parse!(version), all_versions(repository, package)}
+          end
 
+        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
           {:ok, files} ->
             files = rewrite_files(files)
-            version = Version.parse!(version)
-            all_versions = all_versions(repository, package)
-
             Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
 
-            if Hexdocs.Utils.latest_version?(version, all_versions) do
+            if Hexdocs.Utils.latest_version?(package, version, all_versions) do
               update_index_sitemap(repository, key)
               update_package_sitemap(repository, key, package, files)
             end
 
+            elapsed = System.os_time(:millisecond) - start
+            Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
+
           {:error, reason} ->
             Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
         end
-
-        elapsed = System.os_time(:millisecond) - start
-        Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
 
       :error ->
         :skip
@@ -222,8 +220,8 @@ defmodule Hexdocs.Queue do
       all_versions = for {_, _, version} <- entries, do: Version.parse!(version)
 
       List.wrap(
-        Enum.find_value(entries, fn {path, _, version} ->
-          Hexdocs.Utils.latest_version?(Version.parse!(version), all_versions) && path
+        Enum.find_value(entries, fn {path, package, version} ->
+          Hexdocs.Utils.latest_version?(package, Version.parse!(version), all_versions) && path
         end)
       )
     end)
