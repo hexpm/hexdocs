@@ -91,6 +91,8 @@ defmodule Hexdocs.Queue do
           {:ok, files} when package in @special_packages ->
             files = rewrite_files(files)
             Hexdocs.Bucket.upload(repository, package, version, [], files)
+            update_index_sitemap(repository, key)
+            update_package_sitemap(repository, key, package, files)
 
           {:ok, files} ->
             files = rewrite_files(files)

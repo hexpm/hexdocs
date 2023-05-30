@@ -221,10 +221,10 @@ defmodule Hexdocs.Bucket do
         |> hd()
 
       case Version.parse(first) do
-        {:ok, first} ->
+        {:ok, _} ->
           # Current (/ecto/0.8.1/...)
           Enum.any?(versions, fn version ->
-            Version.compare(first, version) == :eq
+            is_struct(version, Version) and Version.compare(first, version) == :eq
           end)
 
         :error ->

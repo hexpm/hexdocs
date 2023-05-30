@@ -238,7 +238,7 @@ defmodule Hexdocs.QueueTest do
              ]
     end
 
-    test "use existing docs_config.js" do
+    test "use existing docs_config.js for special packages" do
       key = "docs/elixir-1.0.0.tar.gz"
       tar = Hexdocs.Tar.create([{"index.html", "contents"}, {"docs_config.js", "use me"}])
       Store.put!(:repo_bucket, key, tar)
@@ -250,6 +250,22 @@ defmodule Hexdocs.QueueTest do
       assert length(files) == 4
       assert Store.get(@public_bucket, "elixir/index.html") == "contents"
       assert Store.get(@public_bucket, "elixir/1.0.0/index.html") == "contents"
+      assert Store.get(@public_bucket, "elixir/sitemap.xml")
+      assert Store.get(@public_bucket, "elixir/docs_config.js") == "use me"
+    end
+
+    test "puts objects for branches in for special packages" do
+      key = "docs/elixir-main.tar.gz"
+      tar = Hexdocs.Tar.create([{"index.html", "contents"}, {"docs_config.js", "use me"}])
+      Store.put!(:repo_bucket, key, tar)
+
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+
+      files = Store.list(@public_bucket, "elixir/")
+      assert length(files) == 4
+      assert Store.get(@public_bucket, "elixir/index.html") == "contents"
+      assert Store.get(@public_bucket, "elixir/main/index.html") == "contents"
       assert Store.get(@public_bucket, "elixir/sitemap.xml")
       assert Store.get(@public_bucket, "elixir/docs_config.js") == "use me"
     end
