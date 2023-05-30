@@ -88,7 +88,7 @@ defmodule Hexdocs.Queue do
         body = Hexdocs.Store.get(:repo_bucket, key)
 
         case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
-          {:ok, files} when package not in @special_packages ->
+          {:ok, files} when package in @special_packages ->
             files = rewrite_files(files)
             Hexdocs.Bucket.upload(repository, package, version, [], files)
 
