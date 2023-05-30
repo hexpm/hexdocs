@@ -88,6 +88,10 @@ defmodule Hexdocs.Queue do
         body = Hexdocs.Store.get(:repo_bucket, key)
 
         case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
+          {:ok, files} when package not in @special_packages ->
+            files = rewrite_files(files)
+            Hexdocs.Bucket.upload(repository, package, version, [], files)
+
           {:ok, files} ->
             files = rewrite_files(files)
             version = Version.parse!(version)
@@ -100,12 +104,12 @@ defmodule Hexdocs.Queue do
               update_package_sitemap(repository, key, package, files)
             end
 
-            elapsed = System.os_time(:millisecond) - start
-            Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
-
           {:error, reason} ->
             Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
         end
+
+        elapsed = System.os_time(:millisecond) - start
+        Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
 
       :error ->
         :skip
