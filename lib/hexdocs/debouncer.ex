@@ -10,9 +10,11 @@ defmodule Hexdocs.Debouncer do
   def debounce(server, key, timeout, fun) do
     case GenServer.call(server, {:debounce, key}, @timeout) do
       :go ->
-        result = {:ok, fun.()}
-        Process.send_after(server, {:deadline, key}, timeout)
-        result
+        try do
+          {:ok, fun.()}
+        after
+          Process.send_after(server, {:deadline, key}, timeout)
+        end
 
       :debounced ->
         :debounced
