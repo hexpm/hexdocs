@@ -1,7 +1,7 @@
 defmodule Hexdocs.Bucket do
   require Logger
 
-  @special_packages Application.compile_env!(:hexdocs, :special_packages)
+  @special_package_names Map.keys(Application.compile_env!(:hexdocs, :special_packages))
   @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
 
   def upload_index_sitemap(sitemap) do
@@ -58,7 +58,7 @@ defmodule Hexdocs.Bucket do
 
   # For Elixir and Hex we use the docs_config.js included in the tarball
   defp build_docs_config(repository, package, _version, _all_versions, files)
-       when package in @special_packages do
+       when package in @special_package_names do
     path = "docs_config.js"
     unversioned_path = repository_path(repository, Path.join([package, path]))
     cdn_key = docs_config_cdn_key(repository, package)
@@ -228,8 +228,13 @@ defmodule Hexdocs.Bucket do
           end)
 
         :error ->
-          # Top-level docs, don't match version directories (/ecto/...)
-          upload_type in [:both, :unversioned]
+          if package in @special_package_names do
+            # Skip branches: main/ and MAJOR.MINOR/
+            first != "main" and not (first =~ ~r/^\d\.\d$/)
+          else
+            # Top-level docs, don't match version directories (/ecto/:version/*)
+            upload_type in [:both, :unversioned]
+          end
       end
     end
   end

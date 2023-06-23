@@ -17,7 +17,15 @@ config :hexdocs,
   session_encryption_salt: "QftsNdJO",
   host: "localhost",
   gcs_put_debounce: 0,
-  special_packages: ~w(eex elixir ex_unit iex logger mix hex)
+  special_packages: %{
+    "eex" => "elixir-lang/elixir",
+    "elixir" => "elixir-lang/elixir",
+    "ex_unit" => "elixir-lang/elixir",
+    "iex" => "elixir-lang/elixir",
+    "logger" => "elixir-lang/elixir",
+    "mix" => "elixir-lang/elixir",
+    "hex" => "hexpm/hex"
+  }
 
 config :hexdocs, :repo_bucket, name: "staging.s3.hex.pm"
 

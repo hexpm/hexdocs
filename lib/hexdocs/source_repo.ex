@@ -9,7 +9,9 @@ defmodule Hexdocs.SourceRepo do
   end
 
   def versions(repo) do
-    impl().versions(repo)
+    with {:ok, versions} <- impl().versions(repo) do
+      {:ok, Enum.sort(versions, {:desc, Version})}
+    end
   end
 
   defp impl do

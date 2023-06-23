@@ -8,7 +8,7 @@ defmodule Hexdocs.QueueTest do
   setup do
     Mox.set_mox_global()
 
-    Mox.expect(HexpmMock, :hexdocs_sitemap, fn ->
+    Mox.stub(HexpmMock, :hexdocs_sitemap, fn ->
       "this is the sitemap"
     end)
 
@@ -238,34 +238,98 @@ defmodule Hexdocs.QueueTest do
              ]
     end
 
-    test "use existing docs_config.js for special packages" do
+    test "special packages" do
+      Mox.stub(Hexdocs.SourceRepo.Mock, :versions, fn "elixir-lang/elixir" ->
+        {:ok, [Version.parse!("1.0.0")]}
+      end)
+
       key = "docs/elixir-1.0.0.tar.gz"
-      tar = Hexdocs.Tar.create([{"index.html", "contents"}, {"docs_config.js", "use me"}])
+      tar = Hexdocs.Tar.create([{"index.html", "v1.0.0"}, {"docs_config.js", "use me"}])
       Store.put!(:repo_bucket, key, tar)
-
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
-      files = Store.list(@public_bucket, "elixir/")
-      assert length(files) == 4
-      assert Store.get(@public_bucket, "elixir/index.html") == "contents"
-      assert Store.get(@public_bucket, "elixir/1.0.0/index.html") == "contents"
-      assert Store.get(@public_bucket, "elixir/sitemap.xml")
+      assert ls(@public_bucket, "elixir/") == [
+               "elixir/1.0.0/index.html",
+               "elixir/docs_config.js",
+               "elixir/index.html",
+               "elixir/sitemap.xml"
+             ]
+
+      assert Store.get(@public_bucket, "elixir/1.0.0/index.html") == "v1.0.0"
       assert Store.get(@public_bucket, "elixir/docs_config.js") == "use me"
-    end
+      assert Store.get(@public_bucket, "elixir/index.html") == "v1.0.0"
+      assert Store.get(@public_bucket, "elixir/sitemap.xml")
 
-    test "puts objects for branches in for special packages" do
-      key = "docs/eex-main.tar.gz"
-      tar = Hexdocs.Tar.create([{"index.html", "contents"}, {"docs_config.js", "use me"}])
+      key = "docs/elixir-main.tar.gz"
+      tar = Hexdocs.Tar.create([{"index.html", "v2.0.0-dev"}, {"docs_config.js", "use me"}])
       Store.put!(:repo_bucket, key, tar)
-
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
       assert_receive {:ack, ^ref, [_], []}
 
-      files = Store.list(@public_bucket, "eex/")
-      assert length(files) == 2
-      assert Store.get(@public_bucket, "eex/main/index.html") == "contents"
-      assert Store.get(@public_bucket, "eex/docs_config.js") == "use me"
+      assert ls(@public_bucket, "elixir/") == [
+               "elixir/1.0.0/index.html",
+               "elixir/main/index.html",
+               "elixir/docs_config.js",
+               "elixir/index.html",
+               "elixir/sitemap.xml"
+             ]
+
+      assert Store.get(@public_bucket, "elixir/1.0.0/index.html") == "v1.0.0"
+      assert Store.get(@public_bucket, "elixir/main/index.html") == "v2.0.0-dev"
+      assert Store.get(@public_bucket, "elixir/index.html") == "v1.0.0"
+
+      Mox.stub(Hexdocs.SourceRepo.Mock, :versions, fn "elixir-lang/elixir" ->
+        {:ok, [Version.parse!("1.0.0"), Version.parse!("1.1.0")]}
+      end)
+
+      key = "docs/elixir-1.1.0.tar.gz"
+      tar = Hexdocs.Tar.create([{"index.html", "v1.1.0"}, {"docs_config.js", "use me"}])
+      Store.put!(:repo_bucket, key, tar)
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+
+      files = ls(@public_bucket, "elixir/")
+
+      assert files == [
+               "elixir/1.0.0/index.html",
+               "elixir/1.1.0/index.html",
+               "elixir/main/index.html",
+               "elixir/docs_config.js",
+               "elixir/index.html",
+               "elixir/sitemap.xml"
+             ]
+
+      assert Store.get(@public_bucket, "elixir/1.0.0/index.html") == "v1.0.0"
+      assert Store.get(@public_bucket, "elixir/1.1.0/index.html") == "v1.1.0"
+      assert Store.get(@public_bucket, "elixir/main/index.html") == "v2.0.0-dev"
+      assert Store.get(@public_bucket, "elixir/index.html") == "v1.1.0"
+
+      Mox.stub(Hexdocs.SourceRepo.Mock, :versions, fn "elixir-lang/elixir" ->
+        {:ok, [Version.parse!("1.0.0"), Version.parse!("1.0.1"), Version.parse!("1.1.0")]}
+      end)
+
+      key = "docs/elixir-1.0.1.tar.gz"
+      tar = Hexdocs.Tar.create([{"index.html", "v1.0.1"}, {"docs_config.js", "use me"}])
+      Store.put!(:repo_bucket, key, tar)
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+
+      assert ls(@public_bucket, "elixir/") == [
+               "elixir/1.0.0/index.html",
+               "elixir/1.0.1/index.html",
+               "elixir/1.1.0/index.html",
+               "elixir/main/index.html",
+               "elixir/docs_config.js",
+               "elixir/index.html",
+               "elixir/sitemap.xml"
+             ]
+
+      assert Store.get(@public_bucket, "elixir/1.0.0/index.html") == "v1.0.0"
+      assert Store.get(@public_bucket, "elixir/1.0.1/index.html") == "v1.0.1"
+      assert Store.get(@public_bucket, "elixir/1.1.0/index.html") == "v1.1.0"
+      assert Store.get(@public_bucket, "elixir/main/index.html") == "v2.0.0-dev"
+      assert Store.get(@public_bucket, "elixir/index.html") == "v1.1.0"
     end
   end
 
@@ -463,5 +527,19 @@ defmodule Hexdocs.QueueTest do
         }
       ]
     })
+  end
+
+  defp ls(bucket, prefix) do
+    Store.list(bucket, prefix)
+    |> Enum.sort_by(fn path ->
+      version = path |> String.split("/") |> Enum.at(1)
+
+      versioned? =
+        version == "main" or
+          match?({:ok, _}, Version.parse(version)) or
+          match?({:ok, _}, Version.parse(version <> ".0"))
+
+      {not versioned?, path}
+    end)
   end
 end
