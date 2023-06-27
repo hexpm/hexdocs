@@ -90,6 +90,16 @@ defmodule Hexdocs.Queue do
 
         {version, all_versions} =
           if package in @special_package_names do
+            version =
+              case Version.parse(version) do
+                {:ok, version} ->
+                  version
+
+                # main or MAJOR.MINOR
+                :error ->
+                  version
+              end
+
             all_versions = Hexdocs.SourceRepo.versions!(Map.fetch!(@special_packages, package))
             {version, all_versions}
           else

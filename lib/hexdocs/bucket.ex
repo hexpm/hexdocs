@@ -229,8 +229,7 @@ defmodule Hexdocs.Bucket do
 
         :error ->
           if package in @special_package_names do
-            # Skip branches: main/ and MAJOR.MINOR/
-            first != "main" and not (first =~ ~r/^\d\.\d$/)
+            match?({:ok, _}, Version.parse(first))
           else
             # Top-level docs, don't match version directories (/ecto/:version/*)
             upload_type in [:both, :unversioned]

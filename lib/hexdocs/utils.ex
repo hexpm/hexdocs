@@ -16,12 +16,12 @@ defmodule Hexdocs.Utils do
   end
 
   def latest_version?(package, version, all_versions) when package in @special_package_names do
-    case Version.parse(version) do
-      {:ok, version} ->
-        latest_version?(:dummy, version, all_versions)
+    case version do
+      %Version{} ->
+        latest_version?(version, all_versions)
 
-      # main or vMAJOR.MINOR
-      :error ->
+      # main or MAJOR.MINOR
+      string when is_binary(string) ->
         false
     end
   end
