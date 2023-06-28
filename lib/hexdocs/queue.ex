@@ -3,6 +3,7 @@ defmodule Hexdocs.Queue do
   require Logger
 
   @special_packages Application.compile_env!(:hexdocs, :special_packages)
+  @special_package_names Map.keys(@special_packages)
   @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
 
   def start_link(_opts) do
@@ -88,16 +89,36 @@ defmodule Hexdocs.Queue do
         body = Hexdocs.Store.get(:repo_bucket, key)
 
         {version, all_versions} =
-          if package in @special_packages do
-            {version, []}
+          if package in @special_package_names do
+            version =
+              case Version.parse(version) do
+                {:ok, version} ->
+                  version
+
+                # main or MAJOR.MINOR
+                :error ->
+                  version
+              end
+
+            all_versions = Hexdocs.SourceRepo.versions!(Map.fetch!(@special_packages, package))
+            {version, all_versions}
           else
-            {Version.parse!(version), all_versions(repository, package)}
+            version = Version.parse!(version)
+            all_versions = all_versions(repository, package)
+            {version, all_versions}
           end
 
         case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
           {:ok, files} ->
             files = rewrite_files(files)
-            Hexdocs.Bucket.upload(repository, package, version, all_versions, files)
+
+            Hexdocs.Bucket.upload(
+              repository,
+              package,
+              version,
+              all_versions,
+              files
+            )
 
             if Hexdocs.Utils.latest_version?(package, version, all_versions) do
               update_index_sitemap(repository, key)
@@ -121,7 +142,7 @@ defmodule Hexdocs.Queue do
     Logger.info("OBJECT DELETED #{key}")
 
     case key_components(key) do
-      {:ok, repository, package, version} when package not in @special_packages ->
+      {:ok, repository, package, version} when package not in @special_package_names ->
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)

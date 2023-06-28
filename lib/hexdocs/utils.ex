@@ -1,7 +1,7 @@
 defmodule Hexdocs.Utils do
   @moduledoc false
 
-  @special_packages Application.compile_env!(:hexdocs, :special_packages)
+  @special_package_names Map.keys(Application.compile_env!(:hexdocs, :special_packages))
 
   def hexdocs_url(repository, path) do
     "/" <> _ = path
@@ -15,15 +15,22 @@ defmodule Hexdocs.Utils do
     Enum.find(versions, &(&1.pre != [])) || List.first(versions)
   end
 
-  def latest_version?(package, version, []) when package in @special_packages do
-    match?({:ok, %Version{pre: []}}, Version.parse(version))
-  end
+  def latest_version?(package, version, all_versions) when package in @special_package_names do
+    case version do
+      %Version{} ->
+        latest_version?(version, all_versions)
 
-  def latest_version?(_package, _version, []) do
-    true
+      # main or MAJOR.MINOR
+      string when is_binary(string) ->
+        false
+    end
   end
 
   def latest_version?(_package, version, all_versions) do
+    latest_version?(version, all_versions)
+  end
+
+  defp latest_version?(version, all_versions) do
     pre_release? = version.pre != []
     first_release? = all_versions == []
     all_pre_releases? = Enum.all?(all_versions, &(&1.pre != []))
