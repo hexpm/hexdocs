@@ -30,7 +30,7 @@ defmodule Hexdocs.Bucket do
         :ok
     end
 
-    purge([path])
+    purge([key])
   end
 
   def upload(repository, package, version, all_versions, files) do
