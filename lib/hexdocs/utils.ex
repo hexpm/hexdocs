@@ -8,7 +8,7 @@ defmodule Hexdocs.Utils do
     host = Application.get_env(:hexdocs, :host)
     scheme = if host == "hexdocs.pm", do: "https", else: "http"
     subdomain = if repository == "hexpm", do: "", else: "#{repository}."
-    "#{scheme}://#{subdomain}#{host}#{path}"
+    URI.encode("#{scheme}://#{subdomain}#{host}#{path}")
   end
 
   def latest_version(versions) do
