@@ -210,8 +210,11 @@ defmodule Hexdocs.QueueTest do
       assert Store.get(@public_bucket, "sitemap.xml") == "this is the sitemap"
 
       sitemap = Store.get(@public_bucket, "#{test}/sitemap.xml")
-      assert sitemap =~ "<loc>http://localhost/#{test}/index.html</loc>"
-      assert sitemap =~ "<loc>http://localhost/#{test}/Foo.html</loc>"
+
+      assert sitemap =~
+               "<loc>http://localhost/#{URI.encode(Atom.to_string(test))}/index.html</loc>"
+
+      assert sitemap =~ "<loc>http://localhost/#{URI.encode(Atom.to_string(test))}/Foo.html</loc>"
       refute sitemap =~ "logo.png"
     end
 
@@ -251,11 +254,11 @@ defmodule Hexdocs.QueueTest do
 
       assert Jason.decode!(json) == [
                %{
-                 "url" => "http://localhost/test put object build docs_config.js/3.0.0",
+                 "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/3.0.0",
                  "version" => "v3.0.0"
                },
                %{
-                 "url" => "http://localhost/test put object build docs_config.js/1.0.0",
+                 "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/1.0.0",
                  "version" => "v1.0.0"
                }
              ]
