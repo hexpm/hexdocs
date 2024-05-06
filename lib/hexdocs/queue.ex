@@ -139,6 +139,7 @@ defmodule Hexdocs.Queue do
 
   defp handle_record(%{"eventName" => "ObjectRemoved:" <> _, "s3" => s3}) do
     key = s3["object"]["key"]
+    start = System.os_time(:millisecond)
     Logger.info("OBJECT DELETED #{key}")
 
     case key_components(key) do
@@ -147,7 +148,9 @@ defmodule Hexdocs.Queue do
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
         update_index_sitemap(repository, key)
-        Logger.info("FINISHED DELETING DOCS #{key}")
+
+        elapsed = System.os_time(:millisecond) - start
+        Logger.info("FINISHED DELETING DOCS #{key} #{elapsed}ms")
         :ok
 
       {:ok, _repository, _package, _version} ->
