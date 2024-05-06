@@ -19,6 +19,8 @@ defmodule Hexdocs.Bucket do
       meta: [{"surrogate-key", key}]
     ]
 
+    Logger.info("Uploading docs_public_bucket #{path}")
+
     case Hexdocs.Store.put(:docs_public_bucket, path, sitemap, opts) do
       {:ok, 200, _headers, _body} ->
         :ok
@@ -205,6 +207,10 @@ defmodule Hexdocs.Bucket do
         &delete_key?(&1, paths, repository, package, versions, upload_type)
       )
 
+    Enum.each(keys_to_delete, fn key ->
+      Logger.info("Deleting #{bucket} #{key}")
+    end)
+
     Hexdocs.Store.delete_many(bucket, keys_to_delete)
   end
 
@@ -253,7 +259,8 @@ defmodule Hexdocs.Bucket do
   defp cache_control(false = _public?), do: "private, max-age=3600"
 
   defp repository_path("hexpm", path), do: path
-  defp repository_path(repository, path), do: Path.join(repository, path)
+  # Don't use Path.join as it removes trailing / which is needed for bucket listing
+  defp repository_path(repository, path), do: Enum.join([repository, "/", path])
 
   defp purge_hexdocs_cache("hexpm", package, versions, :both) do
     keys = Enum.map(versions, &docspage_versioned_cdn_key("hexpm", package, &1))

@@ -52,6 +52,25 @@ defmodule Hexdocs.BucketTest do
     refute Store.get(@bucket, "buckettest/#{test}/remove.html")
   end
 
+  test "dont overwrite package which same prefix name", %{test: test} do
+    version = Version.parse!("0.0.1")
+    test = Atom.to_string(test)
+    prefix_name = String.slice(test, -1000, String.length(test) - 1)
+
+    Bucket.upload("buckettest", "#{test}", version, [], [
+      {"file2", ""}
+    ])
+
+    Bucket.upload("buckettest", "#{prefix_name}", version, [], [
+      {"file1", ""}
+    ])
+
+    assert Store.get(@bucket, "buckettest/#{prefix_name}/file1")
+    assert Store.get(@bucket, "buckettest/#{prefix_name}/#{version}/file1")
+    assert Store.get(@bucket, "buckettest/#{test}/file2")
+    assert Store.get(@bucket, "buckettest/#{test}/#{version}/file2")
+  end
+
   test "newer beta docs do not overwrite stable main docs", %{test: test} do
     first = Version.parse!("0.5.0")
     second = Version.parse!("1.0.0-beta")
