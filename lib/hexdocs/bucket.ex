@@ -81,7 +81,8 @@ defmodule Hexdocs.Bucket do
       for version <- versions do
         %{
           version: "v#{version}",
-          url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}")
+          url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}"),
+          latest: Hexdocs.Utils.latest_version?(package, version, versions)
         }
       end
 
