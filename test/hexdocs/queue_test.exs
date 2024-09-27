@@ -650,8 +650,10 @@ defmodule Hexdocs.QueueTest do
   defp typesense_new_collection do
     headers = [{"x-typesense-api-key", "hexdocs"}, {"content-type", "application/json"}]
 
-    {:ok, 200, _resp_headers, _ref} =
-      :hackney.delete("http://localhost:8108/collections/hexdocs", headers)
+    assert {:ok, delete_status, _resp_headers, _ref} =
+             :hackney.delete("http://localhost:8108/collections/hexdocs", headers)
+
+    assert delete_status in [200, 404]
 
     payload = """
     {
@@ -666,16 +668,16 @@ defmodule Hexdocs.QueueTest do
     }
     """
 
-    {:ok, 201, _resp_headers, _ref} =
-      :hackney.post("http://localhost:8108/collections", headers, payload)
+    assert {:ok, 201, _resp_headers, _ref} =
+             :hackney.post("http://localhost:8108/collections", headers, payload)
   end
 
   defp typesense_search(query) do
     url = "http://localhost:8108/collections/hexdocs/documents/search?" <> URI.encode_query(query)
     headers = [{"x-typesense-api-key", "hexdocs"}]
-    {:ok, 200, _resp_headers, ref} = :hackney.get(url, headers)
-    {:ok, body} = :hackney.body(ref)
-    %{"hits" => hits} = Jason.decode!(body)
+    assert {:ok, 200, _resp_headers, ref} = :hackney.get(url, headers)
+    assert {:ok, body} = :hackney.body(ref)
+    assert %{"hits" => hits} = Jason.decode!(body)
     hits
   end
 end
