@@ -275,7 +275,7 @@ defmodule Hexdocs.Queue do
       end)
 
     unless maybe_json do
-      Logger.error(
+      Logger.info(
         "Failed to find search_data or search_items for #{repository}/#{package} #{version}"
       )
     end
