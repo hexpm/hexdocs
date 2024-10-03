@@ -6,6 +6,7 @@ config :hexdocs,
   hexpm_impl: Hexdocs.HexpmMock,
   store_impl: Hexdocs.Store.Local,
   cdn_impl: Hexdocs.CDN.Local,
+  search_impl: Hexdocs.Search.Local,
   source_repo_impl: Hexdocs.SourceRepo.Mock
 
 config :logger, level: :warning

@@ -1,15 +1,11 @@
-defmodule Hexdocs.Search do
-  @moduledoc """
-  Module responsible for indexing the documentation.
-
-  Currently uses [Typesense Cloud.](https://cloud.typesense.org)
-  """
-
+defmodule Hexdocs.Search.Typesense do
   require Logger
+
+  @behaviour Hexdocs.Search
 
   @collection "hexdocs"
 
-  @spec process_results(String.t(), Version.t(), [map]) :: :ok
+  @impl true
   def index(package, version, search_items) do
     full_package = "#{package}-#{version}"
 
