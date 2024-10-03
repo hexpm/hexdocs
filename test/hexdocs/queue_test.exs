@@ -255,11 +255,13 @@ defmodule Hexdocs.QueueTest do
       assert Jason.decode!(json) == [
                %{
                  "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/3.0.0",
-                 "version" => "v3.0.0"
+                 "version" => "v3.0.0",
+                 "latest" => true
                },
                %{
                  "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/1.0.0",
-                 "version" => "v1.0.0"
+                 "version" => "v1.0.0",
+                 "latest" => false
                }
              ]
     end
