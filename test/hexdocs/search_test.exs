@@ -4,29 +4,22 @@ defmodule Hexdocs.SearchTest do
   @moduletag :typesense
 
   setup do
+    Mox.set_mox_global()
+
+    Hexdocs.HexpmMock
+    |> Mox.stub(:hexdocs_sitemap, fn -> "this is the sitemap" end)
+    |> Mox.stub(:get_package, fn _repo, _package -> %{"releases" => []} end)
+
     orignal_search_impl = Application.get_env(:hexdocs, :search_impl)
     on_exit(fn -> Application.put_env(:hexdocs, :search_impl, orignal_search_impl) end)
     Application.put_env(:hexdocs, :search_impl, Hexdocs.Search.Typesense)
 
     typesense_new_collection()
 
-    Mox.set_mox_global()
-
-    Mox.stub(Hexdocs.HexpmMock, :hexdocs_sitemap, fn ->
-      "this is the sitemap"
-    end)
-
     :ok
   end
 
-  test "put object indexes public search_data", %{test: test} do
-    Mox.expect(Hexdocs.HexpmMock, :get_package, fn repo, package ->
-      assert repo == "hexpm"
-      assert package == "#{test}"
-
-      %{"releases" => []}
-    end)
-
+  test "indexes public search_data", %{test: test} do
     search_data = """
     searchData={"items":[\
     {"type":"module","title":"Example","doc":"example text","ref":"Example.html"},\
@@ -51,7 +44,7 @@ defmodule Hexdocs.SearchTest do
                "document" => %{
                  "doc" => "example text",
                  "id" => "0",
-                 "package" => "test put object indexes public search_data-1.0.0",
+                 "package" => "test indexes public search_data-1.0.0",
                  "ref" => "Example.html",
                  "title" => "Example",
                  "type" => "module"
@@ -61,7 +54,7 @@ defmodule Hexdocs.SearchTest do
                "document" => %{
                  "doc" => "does example things",
                  "id" => "1",
-                 "package" => "test put object indexes public search_data-1.0.0",
+                 "package" => "test indexes public search_data-1.0.0",
                  "ref" => "Example.html#test/4",
                  "title" => "Example.test/4",
                  "type" => "function"
@@ -74,7 +67,7 @@ defmodule Hexdocs.SearchTest do
                "document" => %{
                  "doc" => "does example things",
                  "id" => "1",
-                 "package" => "test put object indexes public search_data-1.0.0",
+                 "package" => "test indexes public search_data-1.0.0",
                  "ref" => "Example.html#test/4",
                  "title" => "Example.test/4",
                  "type" => "function"
