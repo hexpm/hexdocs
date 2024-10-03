@@ -1,0 +1,6 @@
+services:
+  typesense:
+    image: typesense/typesense:26.0
+    command: --data-dir /tmp --api-key=hexdocs
+    ports:
+      - 8108:8108
