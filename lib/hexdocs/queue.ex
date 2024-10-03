@@ -258,15 +258,11 @@ defmodule Hexdocs.Queue do
   end
 
   defp find_search_items(repository, package, version, files) do
-    maybe_json =
+    search_data_json =
       Enum.find_value(files, fn {path, content} ->
         case Path.basename(path) do
           "search_data-" <> _digest ->
             "searchData=" <> json = content
-            json
-
-          "search_items-" <> _digest ->
-            "searchNodes=" <> json = content
             json
 
           _other ->
@@ -274,21 +270,19 @@ defmodule Hexdocs.Queue do
         end
       end)
 
-    unless maybe_json do
-      Logger.info(
-        "Failed to find search_data or search_items for #{repository}/#{package} #{version}"
-      )
+    unless search_data_json do
+      Logger.info("Failed to find search data for #{repository}/#{package} #{version}")
     end
 
-    maybe_docs =
-      if maybe_json do
-        case Jason.decode(maybe_json) do
-          {:ok, json} ->
-            json
+    search_data =
+      if search_data_json do
+        case Jason.decode(search_data_json) do
+          {:ok, search_data} ->
+            search_data
 
           {:error, error} ->
             Logger.error(
-              "Failed to decode search items json for #{repository}/#{package} #{version}: " <>
+              "Failed to decode search data json for #{repository}/#{package} #{version}: " <>
                 Exception.message(error)
             )
 
@@ -296,21 +290,19 @@ defmodule Hexdocs.Queue do
         end
       end
 
-    if maybe_docs do
-      case maybe_docs do
-        %{"items" => items} ->
-          items
+    case search_data do
+      %{"items" => items} ->
+        items
 
-        items when is_list(items) ->
-          items
+      nil ->
+        nil
 
-        _ ->
-          Logger.error(
-            "Failed to extract items from search json for #{repository}/#{package} #{version}"
-          )
+      _ ->
+        Logger.error(
+          "Failed to extract search items from search data for #{repository}/#{package} #{version}"
+        )
 
-          nil
-      end
+        nil
     end
   end
 end
