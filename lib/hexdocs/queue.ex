@@ -110,6 +110,12 @@ defmodule Hexdocs.Queue do
 
         case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
           {:ok, files} ->
+            if repository == "hexpm" do
+              if search_items = find_search_items(repository, package, version, files) do
+                Hexdocs.Search.index(package, version, search_items)
+              end
+            end
+
             files = rewrite_files(files)
 
             Hexdocs.Bucket.upload(
@@ -126,7 +132,7 @@ defmodule Hexdocs.Queue do
             end
 
             elapsed = System.os_time(:millisecond) - start
-            Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
+            Logger.info("FINISHED UPLOADING AND INDEXING DOCS #{key} #{elapsed}ms")
 
           {:error, reason} ->
             Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
@@ -249,5 +255,54 @@ defmodule Hexdocs.Queue do
         end)
       )
     end)
+  end
+
+  defp find_search_items(repository, package, version, files) do
+    search_data_json =
+      Enum.find_value(files, fn {path, content} ->
+        case Path.basename(path) do
+          "search_data-" <> _digest ->
+            "searchData=" <> json = content
+            json
+
+          _other ->
+            nil
+        end
+      end)
+
+    unless search_data_json do
+      Logger.info("Failed to find search data for #{repository}/#{package} #{version}")
+    end
+
+    search_data =
+      if search_data_json do
+        case Jason.decode(search_data_json) do
+          {:ok, search_data} ->
+            search_data
+
+          {:error, error} ->
+            Logger.error(
+              "Failed to decode search data json for #{repository}/#{package} #{version}: " <>
+                Exception.message(error)
+            )
+
+            nil
+        end
+      end
+
+    case search_data do
+      %{"items" => items} ->
+        items
+
+      nil ->
+        nil
+
+      _ ->
+        Logger.error(
+          "Failed to extract search items from search data for #{repository}/#{package} #{version}"
+        )
+
+        nil
+    end
   end
 end

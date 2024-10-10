@@ -24,6 +24,9 @@ jobs:
       - name: Check mix format
         run: mix format --check-formatted
 
+      - name: Start Typesense
+        run: docker run -d -p 8108:8108 typesense/typesense:26.0 --data-dir /tmp --api-key=hexdocs
+
       - name: Run tests
         run: |
           mix test
