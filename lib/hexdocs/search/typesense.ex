@@ -1,5 +1,6 @@
 defmodule Hexdocs.Search.Typesense do
   require Logger
+  alias Hexdocs.HTTP
 
   @behaviour Hexdocs.Search
 
@@ -22,26 +23,11 @@ defmodule Hexdocs.Search.Typesense do
     url = url("collections/#{@collection}/documents/import?action=create")
     headers = headers([{"content-type", "text/plain"}])
 
-    case :hackney.post(url, headers, ndjson) do
-      {:ok, 200, _resp_headers, ref} ->
-        process_results(package, version, ref)
-        :ok
-
-      {:ok, status, _resp_headers, _ref} ->
-        Logger.error("Failed to index search items for #{package} #{version}: status=#{status}")
-
-      {:error, reason} ->
-        Logger.error("Failed to index search items #{package} #{version}: #{inspect(reason)}")
-    end
-  end
-
-  @spec process_results(String.t(), Version.t(), :hackney.client_ref()) :: :ok
-  defp process_results(package, version, ref) do
-    case :hackney.stream_body(ref) do
-      {:ok, ndjson} ->
+    case HTTP.post(url, headers, ndjson, [:with_body]) do
+      {:ok, 200, _resp_headers, ndjson} ->
         ndjson
-        |> String.splitter("\n")
-        |> Stream.each(fn json ->
+        |> String.split("\n")
+        |> Enum.each(fn json ->
           case Jason.decode!(json) do
             %{"success" => true} ->
               :ok
@@ -52,15 +38,12 @@ defmodule Hexdocs.Search.Typesense do
               )
           end
         end)
-        |> Stream.run()
+
+      {:ok, status, _resp_headers, _body} ->
+        Logger.error("Failed to index search items for #{package} #{version}: status=#{status}")
 
       {:error, reason} ->
-        Logger.error(
-          "Failed to read results from indexing search items for #{package} #{version}: #{inspect(reason)}"
-        )
-
-      :done ->
-        :ok
+        Logger.error("Failed to index search items #{package} #{version}: #{inspect(reason)}")
     end
   end
 
