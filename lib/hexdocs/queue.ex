@@ -110,12 +110,6 @@ defmodule Hexdocs.Queue do
 
         case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
           {:ok, files} ->
-            if repository == "hexpm" do
-              if search_items = find_search_items(repository, package, version, files) do
-                Hexdocs.Search.index(package, version, search_items)
-              end
-            end
-
             files = rewrite_files(files)
 
             Hexdocs.Bucket.upload(
@@ -129,6 +123,12 @@ defmodule Hexdocs.Queue do
             if Hexdocs.Utils.latest_version?(package, version, all_versions) do
               update_index_sitemap(repository, key)
               update_package_sitemap(repository, key, package, files)
+            end
+
+            if repository == "hexpm" do
+              if search_items = find_search_items(package, version, files) do
+                Hexdocs.Search.index(package, version, search_items)
+              end
             end
 
             elapsed = System.os_time(:millisecond) - start
@@ -257,7 +257,7 @@ defmodule Hexdocs.Queue do
     end)
   end
 
-  defp find_search_items(repository, package, version, files) do
+  defp find_search_items(package, version, files) do
     search_data_json =
       Enum.find_value(files, fn {path, content} ->
         case Path.basename(path) do
@@ -271,7 +271,7 @@ defmodule Hexdocs.Queue do
       end)
 
     unless search_data_json do
-      Logger.info("Failed to find search data for #{repository}/#{package} #{version}")
+      Logger.info("Failed to find search data for #{package} #{version}")
     end
 
     search_data =
@@ -282,7 +282,7 @@ defmodule Hexdocs.Queue do
 
           {:error, error} ->
             Logger.error(
-              "Failed to decode search data json for #{repository}/#{package} #{version}: " <>
+              "Failed to decode search data json for #{package} #{version}: " <>
                 Exception.message(error)
             )
 
@@ -298,10 +298,7 @@ defmodule Hexdocs.Queue do
         nil
 
       _ ->
-        Logger.error(
-          "Failed to extract search items from search data for #{repository}/#{package} #{version}"
-        )
-
+        Logger.error("Failed to extract search items from search data for #{package} #{version}")
         nil
     end
   end
