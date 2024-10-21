@@ -15,11 +15,7 @@ if :typesense in ExUnit.configuration()[:include] do
     Mix.shell().error("""
     To enable Typesense tests, start the local container with the following command:
 
-        docker compose up -d
-
-    Or, if you prefer to run the container manually:
-
-        docker run -d --rm -p 8108:8108 typesense/typesense:26.0 --data-dir /tmp --api-key=hexdocs
+        docker compose up -d typesense
     """)
   end
 end

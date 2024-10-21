@@ -25,7 +25,7 @@ jobs:
         run: mix format --check-formatted
 
       - name: Start Typesense
-        run: docker run -d -p 8108:8108 typesense/typesense:26.0 --data-dir /tmp --api-key=hexdocs
+        run: docker compose up -d typesense
 
       - name: Run tests
         run: |
