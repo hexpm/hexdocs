@@ -1,10 +1,9 @@
 defmodule Hexdocs.Search.Typesense do
+  @moduledoc false
   require Logger
   alias Hexdocs.HTTP
 
   @behaviour Hexdocs.Search
-
-  @collection "hexdocs"
 
   @impl true
   def index(package, version, search_items) do
@@ -20,7 +19,7 @@ defmodule Hexdocs.Search.Typesense do
         [json, ?\n]
       end)
 
-    url = url("collections/#{@collection}/documents/import?action=create")
+    url = url("collections/#{collection()}/documents/import?action=create")
     headers = headers([{"content-type", "text/plain"}])
 
     case HTTP.post(url, headers, ndjson, [:with_body]) do
@@ -47,13 +46,22 @@ defmodule Hexdocs.Search.Typesense do
     end
   end
 
+  @spec collection :: String.t()
+  def collection do
+    Application.fetch_env!(:hexdocs, :typesense_collection)
+  end
+
+  @spec api_key :: String.t()
+  def api_key do
+    Application.fetch_env!(:hexdocs, :typesense_api_key)
+  end
+
   defp url(path) do
     base_url = Application.fetch_env!(:hexdocs, :typesense_url)
     Path.join(base_url, path)
   end
 
   defp headers(headers) do
-    api_key = Application.fetch_env!(:hexdocs, :typesense_api_key)
-    [{"x-typesense-api-key", api_key} | headers]
+    [{"x-typesense-api-key", api_key()} | headers]
   end
 end
