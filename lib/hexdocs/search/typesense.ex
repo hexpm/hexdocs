@@ -20,7 +20,7 @@ defmodule Hexdocs.Search.Typesense do
       end)
 
     url = url("collections/#{collection()}/documents/import?action=create")
-    headers = headers([{"content-type", "text/plain"}])
+    headers = [{"x-typesense-api-key", api_key()}]
 
     case HTTP.post(url, headers, ndjson, [:with_body]) do
       {:ok, 200, _resp_headers, ndjson} ->
@@ -59,9 +59,5 @@ defmodule Hexdocs.Search.Typesense do
   defp url(path) do
     base_url = Application.fetch_env!(:hexdocs, :typesense_url)
     Path.join(base_url, path)
-  end
-
-  defp headers(headers) do
-    [{"x-typesense-api-key", api_key()} | headers]
   end
 end
