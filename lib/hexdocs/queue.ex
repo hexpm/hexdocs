@@ -126,9 +126,7 @@ defmodule Hexdocs.Queue do
             end
 
             if repository == "hexpm" do
-              if search_items = find_search_items(package, version, files) do
-                Hexdocs.Search.index(package, version, search_items)
-              end
+              insert_into_global_index(package, version, files)
             end
 
             elapsed = System.os_time(:millisecond) - start
@@ -232,6 +230,18 @@ defmodule Hexdocs.Queue do
 
   defp update_package_sitemap(_repository, _key, _package, _files) do
     :ok
+  end
+
+  defp insert_into_global_index(package, version, files) do
+    key = "#{package}-#{version}"
+
+    Logger.info("INDEXING PACKAGE #{key}")
+
+    if search_items = find_search_items(package, version, files) do
+      Hexdocs.Search.index(package, version, search_items)
+    end
+
+    Logger.info("(PROBABLY) INDEXED PACKAGE #{key}")
   end
 
   @doc false
