@@ -5,7 +5,7 @@ defmodule Hexdocs.SearchTest do
 
   @moduletag :typesense
 
-  setup do
+  setup %{test: test} do
     Mox.set_mox_global()
 
     Hexdocs.HexpmMock
@@ -18,7 +18,7 @@ defmodule Hexdocs.SearchTest do
 
     typesense_new_collection()
 
-    :ok
+    {:ok, package: test}
   end
 
   defp run_upload(package, version, files) do
@@ -35,8 +35,9 @@ defmodule Hexdocs.SearchTest do
     assert_receive {:ack, ^ref, [_], []}
   end
 
-  test "indexes public search_data on upload and deindexes it on delete", %{test: test} do
-    package = test
+  test "happy path: indexes public search_data on upload and deindexes it on delete", %{
+    package: package
+  } do
     version = "1.0.0"
 
     run_upload(package, version, [
@@ -44,8 +45,8 @@ defmodule Hexdocs.SearchTest do
       {"dist/search_data-0F918FFD.js",
        """
        searchData={"items":[\
-       {"type":"module","title":"Example","doc":"example text","ref":"Example.html"},\
-       {"type":"function","title":"Example.test/4","doc":"does example things","ref":"Example.html#test/4"}\
+       {"type":"function","title":"Example.test/4","doc":"does example things","ref":"Example.html#test/4"},\
+       {"type":"module","title":"Example","doc":"example text","ref":"Example.html"}\
        ],"content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]}}\
        """}
     ])
@@ -56,9 +57,8 @@ defmodule Hexdocs.SearchTest do
              %{
                "document" => %{
                  "doc" => "example text",
-                 "id" => "0",
-                 "proglang" => "elixir",
                  "package" => ^full_package,
+                 "proglang" => "elixir",
                  "ref" => "Example.html",
                  "title" => "Example",
                  "type" => "module"
@@ -67,9 +67,8 @@ defmodule Hexdocs.SearchTest do
              %{
                "document" => %{
                  "doc" => "does example things",
-                 "id" => "1",
-                 "proglang" => "elixir",
                  "package" => ^full_package,
+                 "proglang" => "elixir",
                  "ref" => "Example.html#test/4",
                  "title" => "Example.test/4",
                  "type" => "function"
@@ -81,7 +80,6 @@ defmodule Hexdocs.SearchTest do
              %{
                "document" => %{
                  "doc" => "does example things",
-                 "id" => "1",
                  "proglang" => "elixir",
                  "package" => ^full_package,
                  "ref" => "Example.html#test/4",
@@ -94,6 +92,84 @@ defmodule Hexdocs.SearchTest do
     run_delete(package, version)
 
     assert typesense_search(%{"q" => "example", "query_by" => "title"}) == []
+  end
+
+  test "extracts proglang from search_data if available", %{package: package} do
+    run_upload(package, "1.0.0", [
+      {"index.html", "contents"},
+      {"dist/search_data-0F918FFD.js",
+       """
+       searchData={"items":[{"type":"module","title":"Example","doc":"example text","ref":"Example.html"}],\
+       "content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]},\
+       "proglang":"erlang"}\
+       """}
+    ])
+
+    assert [%{"document" => %{"title" => "Example", "proglang" => "erlang"}}] =
+             typesense_search(%{
+               "q" => "example",
+               "query_by" => "title",
+               "filter" => "proglang:erlang"
+             })
+  end
+
+  test "logs an info message if search_data is not found", %{package: package} do
+    original_log_level = Logger.level()
+    Logger.configure(level: :info)
+    on_exit(fn -> Logger.configure(level: original_log_level) end)
+
+    log =
+      capture_log(fn ->
+        run_upload(package, "1.0.0", [{"index.html", "contents"}])
+      end)
+
+    assert log =~ "[info] Failed to find search data for #{package} 1.0.0"
+  end
+
+  test "logs an error message if search_data.js file has unexpected format", %{package: package} do
+    files = [
+      {"index.html", "contents"},
+      {"dist/search_data-0F918FFD.js", "unexpected format"}
+    ]
+
+    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+    assert log =~ "[error] Unexpected search_data format for #{package} 1.0.0"
+  end
+
+  test "logs an error message if search_data.json cannot be decoded", %{package: package} do
+    files = [
+      {"index.html", "contents"},
+      {"dist/search_data-0F918FFD.js", "searchData={\"items\":["}
+    ]
+
+    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+
+    assert log =~
+             "[error] Failed to decode search data json for #{package} 1.0.0: unexpected end of input at position 10"
+  end
+
+  test "logs an error message if search_data has empty items", %{package: package} do
+    files = [
+      {"index.html", "contents"},
+      {"dist/search_data-0F918FFD.js", "searchData={\"items\":[]}"}
+    ]
+
+    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+
+    assert log =~
+             "[error] Failed to extract search items and proglang from search data for #{package} 1.0.0"
+  end
+
+  test "logs an error message if search_data has no items", %{package: package} do
+    files = [
+      {"index.html", "contents"},
+      {"dist/search_data-0F918FFD.js", "searchData={\"not_items\":[]}"}
+    ]
+
+    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+
+    assert log =~
+             "[error] Failed to extract search items and proglang from search data for #{package} 1.0.0"
   end
 
   defp queue_put_message(key) do
@@ -143,112 +219,5 @@ defmodule Hexdocs.SearchTest do
     assert {:ok, body} = :hackney.body(ref)
     assert %{"hits" => hits} = Jason.decode!(body)
     hits
-  end
-
-  describe "find_search_items/3" do
-    test "extracts proglang from search items" do
-      files = [
-        {"index.html", "contents"},
-        {"dist/search_data-0F918FFD.js",
-         """
-         searchData={"items":[\
-         {"type":"function","title":"Example.test/4","doc":"does example things","ref":"Example.html#test/4"},\
-         {"type":"module","title":"Example","doc":"example text","ref":"Example.html"}\
-         ],"content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]}}\
-         """}
-      ]
-
-      assert {"elixir", _search_items} = Hexdocs.Search.find_search_items("test", "1.0.0", files)
-    end
-
-    test "extracts proglang from search_data if available" do
-      files = [
-        {"index.html", "contents"},
-        {"dist/search_data-0F918FFD.js",
-         """
-         searchData={"items":[{"type":"module","title":"Example","doc":"example text","ref":"Example.html"}],\
-         "content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]},\
-         "proglang": "erlang"}\
-         """}
-      ]
-
-      assert {"erlang", _search_items} = Hexdocs.Search.find_search_items("test", "1.0.0", files)
-    end
-
-    test "logs an info message if search_data is not found" do
-      files = [
-        {"index.html", "contents"}
-      ]
-
-      original_log_level = Logger.level()
-      Logger.configure(level: :info)
-      on_exit(fn -> Logger.configure(level: original_log_level) end)
-
-      log =
-        capture_log(fn ->
-          refute Hexdocs.Search.find_search_items("package_name", "1.0.0", files)
-        end)
-
-      assert log =~ "[info] Failed to find search data for package_name 1.0.0"
-    end
-
-    test "logs an error message if search_data.js file has unexpected format" do
-      files = [
-        {"index.html", "contents"},
-        {"dist/search_data-0F918FFD.js", "unexpected format"}
-      ]
-
-      log =
-        capture_log(fn ->
-          refute Hexdocs.Search.find_search_items("package_name", "1.0.0", files)
-        end)
-
-      assert log =~ "[error] Unexpected search_data format for package_name 1.0.0"
-    end
-
-    test "logs an error message if search_data.json cannot be decoded" do
-      files = [
-        {"index.html", "contents"},
-        {"dist/search_data-0F918FFD.js", "searchData={\"items\":["}
-      ]
-
-      log =
-        capture_log(fn ->
-          refute Hexdocs.Search.find_search_items("package_name", "1.0.0", files)
-        end)
-
-      assert log =~
-               "[error] Failed to decode search data json for package_name 1.0.0: unexpected end of input at position 10"
-    end
-
-    test "logs an error message if search_data has empty items" do
-      files = [
-        {"index.html", "contents"},
-        {"dist/search_data-0F918FFD.js", "searchData={\"items\":[]}"}
-      ]
-
-      log =
-        capture_log(fn ->
-          refute Hexdocs.Search.find_search_items("package_name", "1.0.0", files)
-        end)
-
-      assert log =~
-               "[error] Failed to extract search items and proglang from search data for package_name 1.0.0"
-    end
-
-    test "logs an error message if search_data has no items" do
-      files = [
-        {"index.html", "contents"},
-        {"dist/search_data-0F918FFD.js", "searchData={\"not_items\":[]}"}
-      ]
-
-      log =
-        capture_log(fn ->
-          refute Hexdocs.Search.find_search_items("package_name", "1.0.0", files)
-        end)
-
-      assert log =~
-               "[error] Failed to extract search items and proglang from search data for package_name 1.0.0"
-    end
   end
 end
