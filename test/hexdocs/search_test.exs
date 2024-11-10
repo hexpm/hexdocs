@@ -21,7 +21,7 @@ defmodule Hexdocs.SearchTest do
     :ok
   end
 
-  defp run_queue(:put, package, version, files) do
+  defp run_upload(package, version, files) do
     tar = Hexdocs.Tar.create(files)
     key = "docs/#{package}-#{version}.tar.gz"
     Hexdocs.Store.put!(:repo_bucket, key, tar)
@@ -29,8 +29,17 @@ defmodule Hexdocs.SearchTest do
     assert_receive {:ack, ^ref, [_], []}
   end
 
-  test "indexes public search_data", %{test: test} do
-    run_queue(:put, _package = test, _version = "1.0.0", [
+  defp run_delete(package, version) do
+    key = "docs/#{package}-#{version}.tar.gz"
+    ref = Broadway.test_message(Hexdocs.Queue, queue_delete_message(key))
+    assert_receive {:ack, ^ref, [_], []}
+  end
+
+  test "indexes public search_data on upload and deindexes it on delete", %{test: test} do
+    package = test
+    version = "1.0.0"
+
+    run_upload(package, version, [
       {"index.html", "contents"},
       {"dist/search_data-0F918FFD.js",
        """
@@ -41,13 +50,15 @@ defmodule Hexdocs.SearchTest do
        """}
     ])
 
+    full_package = "#{package}-#{version}"
+
     assert [
              %{
                "document" => %{
                  "doc" => "example text",
                  "id" => "0",
                  "proglang" => "elixir",
-                 "package" => "test indexes public search_data-1.0.0",
+                 "package" => ^full_package,
                  "ref" => "Example.html",
                  "title" => "Example",
                  "type" => "module"
@@ -58,7 +69,7 @@ defmodule Hexdocs.SearchTest do
                  "doc" => "does example things",
                  "id" => "1",
                  "proglang" => "elixir",
-                 "package" => "test indexes public search_data-1.0.0",
+                 "package" => ^full_package,
                  "ref" => "Example.html#test/4",
                  "title" => "Example.test/4",
                  "type" => "function"
@@ -72,13 +83,17 @@ defmodule Hexdocs.SearchTest do
                  "doc" => "does example things",
                  "id" => "1",
                  "proglang" => "elixir",
-                 "package" => "test indexes public search_data-1.0.0",
+                 "package" => ^full_package,
                  "ref" => "Example.html#test/4",
                  "title" => "Example.test/4",
                  "type" => "function"
                }
              }
            ] = typesense_search(%{"q" => "thing", "query_by" => "doc"})
+
+    run_delete(package, version)
+
+    assert typesense_search(%{"q" => "example", "query_by" => "title"}) == []
   end
 
   defp queue_put_message(key) do
@@ -86,6 +101,17 @@ defmodule Hexdocs.SearchTest do
       "Records" => [
         %{
           "eventName" => "ObjectCreated:Put",
+          "s3" => %{"object" => %{"key" => key}}
+        }
+      ]
+    })
+  end
+
+  defp queue_delete_message(key) do
+    Jason.encode!(%{
+      "Records" => [
+        %{
+          "eventName" => "ObjectRemoved:Delete",
           "s3" => %{"object" => %{"key" => key}}
         }
       ]
