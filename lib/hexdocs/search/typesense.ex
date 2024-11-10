@@ -34,7 +34,7 @@ defmodule Hexdocs.Search.Typesense do
 
             %{"success" => false, "error" => error, "document" => document} ->
               Logger.error(
-                "Failed to index search item for #{package} #{version}: #{inspect(document)}: #{inspect(error)}"
+                "Failed to index search item for #{package} #{version} for document #{inspect(document)}: #{inspect(error)}"
               )
           end
         end)
