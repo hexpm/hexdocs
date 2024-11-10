@@ -102,6 +102,7 @@ defmodule Hexdocs.SearchTest do
       "name": "#{collection}",
       "token_separators": [".", "_", "-", " ", ":", "@", "/"],
       "fields": [
+        {"name": "proglang", "type": "string", "facet": true},
         {"name": "type", "type": "string", "facet": true},
         {"name": "title", "type": "string"},
         {"name": "doc", "type": "string"},
