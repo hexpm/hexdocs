@@ -1,5 +1,6 @@
 defmodule Hexdocs.SearchTest do
   use ExUnit.Case
+  alias Hexdocs.Search.Typesense
 
   @moduletag :typesense
 
@@ -12,7 +13,7 @@ defmodule Hexdocs.SearchTest do
 
     orignal_search_impl = Application.get_env(:hexdocs, :search_impl)
     on_exit(fn -> Application.put_env(:hexdocs, :search_impl, orignal_search_impl) end)
-    Application.put_env(:hexdocs, :search_impl, Hexdocs.Search.Typesense)
+    Application.put_env(:hexdocs, :search_impl, Typesense)
 
     typesense_new_collection()
 
@@ -88,36 +89,20 @@ defmodule Hexdocs.SearchTest do
   end
 
   defp typesense_new_collection do
-    collection = Hexdocs.Search.Typesense.collection()
-    api_key = Hexdocs.Search.Typesense.api_key()
+    collection = Typesense.collection()
+    api_key = Typesense.api_key()
     headers = [{"x-typesense-api-key", api_key}, {"content-type", "application/json"}]
-
-    assert {:ok, delete_status, _resp_headers, _ref} =
-             :hackney.delete("http://localhost:8108/collections/#{collection}", headers)
-
-    assert delete_status in [200, 404]
-
-    payload = """
-    {
-      "name": "#{collection}",
-      "token_separators": [".", "_", "-", " ", ":", "@", "/"],
-      "fields": [
-        {"name": "proglang", "type": "string", "facet": true},
-        {"name": "type", "type": "string", "facet": true},
-        {"name": "title", "type": "string"},
-        {"name": "doc", "type": "string"},
-        {"name": "package", "type": "string", "facet": true}
-      ]
-    }
-    """
+    payload = Jason.encode_to_iodata!(Typesense.collection_schema(collection))
 
     assert {:ok, 201, _resp_headers, _ref} =
              :hackney.post("http://localhost:8108/collections", headers, payload)
+
+    on_exit(fn -> :hackney.delete("http://localhost:8108/collections/#{collection}", headers) end)
   end
 
   defp typesense_search(query) do
-    api_key = Hexdocs.Search.Typesense.api_key()
-    collection = Hexdocs.Search.Typesense.collection()
+    collection = Typesense.collection()
+    api_key = Typesense.api_key()
 
     url =
       "http://localhost:8108/collections/#{collection}/documents/search?" <>

@@ -74,6 +74,21 @@ defmodule Hexdocs.Search.Typesense do
     Application.fetch_env!(:hexdocs, :typesense_collection)
   end
 
+  @spec collection_schema :: map
+  def collection_schema(collection \\ collection()) do
+    %{
+      "fields" => [
+        %{"facet" => true, "name" => "proglang", "type" => "string"},
+        %{"facet" => true, "name" => "type", "type" => "string"},
+        %{"name" => "title", "type" => "string"},
+        %{"name" => "doc", "type" => "string"},
+        %{"facet" => true, "name" => "package", "type" => "string"}
+      ],
+      "name" => collection,
+      "token_separators" => [".", "_", "-", " ", ":", "@", "/"]
+    }
+  end
+
   @spec api_key :: String.t()
   def api_key do
     Application.fetch_env!(:hexdocs, :typesense_api_key)
