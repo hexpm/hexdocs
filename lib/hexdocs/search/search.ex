@@ -41,8 +41,11 @@ defmodule Hexdocs.Search do
         "searchData=" <> json ->
           json
 
-        _ ->
+        _ when is_binary(search_data_js) ->
           Logger.error("Unexpected search_data format for #{package} #{version}")
+          nil
+
+        nil ->
           nil
       end
 
