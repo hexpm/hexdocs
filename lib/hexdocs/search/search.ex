@@ -28,8 +28,10 @@ defmodule Hexdocs.Search do
       Enum.find_value(files, fn {path, content} ->
         case Path.basename(path) do
           "search_data-" <> _digest ->
-            "searchData=" <> json = content
-            json
+            case content do
+              "searchData=" <> json -> json
+              _ -> nil
+            end
 
           _other ->
             nil
@@ -57,7 +59,7 @@ defmodule Hexdocs.Search do
       end
 
     case search_data do
-      %{"items" => search_items} ->
+      %{"items" => [_ | _] = search_items} ->
         proglang = Map.get(search_data, "proglang") || proglang(search_items)
         {proglang, search_items}
 
