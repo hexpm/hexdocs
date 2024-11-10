@@ -24,23 +24,27 @@ defmodule Hexdocs.Search do
   @spec find_search_items(package, version, [{Path.t(), content :: iodata}]) ::
           {proglang, search_items} | nil
   def find_search_items(package, version, files) do
-    search_data_json =
+    search_data_js =
       Enum.find_value(files, fn {path, content} ->
         case Path.basename(path) do
-          "search_data-" <> _digest ->
-            case content do
-              "searchData=" <> json -> json
-              _ -> nil
-            end
-
-          _other ->
-            nil
+          "search_data-" <> _digest -> content
+          _other -> nil
         end
       end)
 
-    unless search_data_json do
+    unless search_data_js do
       Logger.info("Failed to find search data for #{package} #{version}")
     end
+
+    search_data_json =
+      case search_data_js do
+        "searchData=" <> json ->
+          json
+
+        _ ->
+          Logger.error("Unexpected search_data format for #{package} #{version}")
+          nil
+      end
 
     search_data =
       if search_data_json do
