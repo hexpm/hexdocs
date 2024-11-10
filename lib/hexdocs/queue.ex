@@ -126,7 +126,7 @@ defmodule Hexdocs.Queue do
             end
 
             if repository == "hexpm" do
-              insert_into_global_index(package, version, files)
+              update_search_index(key, package, version, files)
             end
 
             elapsed = System.os_time(:millisecond) - start
@@ -152,6 +152,10 @@ defmodule Hexdocs.Queue do
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
         update_index_sitemap(repository, key)
+
+        if repository == "hexpm" do
+          Hexdocs.Search.delete(package, version)
+        end
 
         elapsed = System.os_time(:millisecond) - start
         Logger.info("FINISHED DELETING DOCS #{key} #{elapsed}ms")
@@ -232,16 +236,12 @@ defmodule Hexdocs.Queue do
     :ok
   end
 
-  defp insert_into_global_index(package, version, files) do
-    key = "#{package}-#{version}"
-
-    Logger.info("INDEXING PACKAGE #{key}")
-
-    if search_items = find_search_items(package, version, files) do
-      Hexdocs.Search.index(package, version, search_items)
+  defp update_search_index(key, package, version, files) do
+    with {proglang, items} <- Hexdocs.Search.find_search_items(package, version, files) do
+      Logger.info("UPDATING SEARCH INDEX #{key}")
+      Hexdocs.Search.index(package, version, proglang, items)
+      Logger.info("UPDATED SEARCH INDEX #{key}")
     end
-
-    Logger.info("(PROBABLY) INDEXED PACKAGE #{key}")
   end
 
   @doc false
@@ -265,51 +265,5 @@ defmodule Hexdocs.Queue do
         end)
       )
     end)
-  end
-
-  defp find_search_items(package, version, files) do
-    search_data_json =
-      Enum.find_value(files, fn {path, content} ->
-        case Path.basename(path) do
-          "search_data-" <> _digest ->
-            "searchData=" <> json = content
-            json
-
-          _other ->
-            nil
-        end
-      end)
-
-    unless search_data_json do
-      Logger.info("Failed to find search data for #{package} #{version}")
-    end
-
-    search_data =
-      if search_data_json do
-        case Jason.decode(search_data_json) do
-          {:ok, search_data} ->
-            search_data
-
-          {:error, error} ->
-            Logger.error(
-              "Failed to decode search data json for #{package} #{version}: " <>
-                Exception.message(error)
-            )
-
-            nil
-        end
-      end
-
-    case search_data do
-      %{"items" => items} ->
-        items
-
-      nil ->
-        nil
-
-      _ ->
-        Logger.error("Failed to extract search items from search data for #{package} #{version}")
-        nil
-    end
   end
 end

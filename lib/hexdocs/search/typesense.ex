@@ -6,14 +6,15 @@ defmodule Hexdocs.Search.Typesense do
   @behaviour Hexdocs.Search
 
   @impl true
-  def index(package, version, search_items) do
-    full_package = "#{package}-#{version}"
+  def index(package, version, proglang, search_items) do
+    full_package = full_package(package, version)
 
     ndjson =
       Enum.map(search_items, fn item ->
         json =
           Map.take(item, ["type", "ref", "title", "doc"])
           |> Map.put("package", full_package)
+          |> Map.put("proglang", proglang)
           |> Jason.encode_to_iodata!()
 
         [json, ?\n]
@@ -46,6 +47,28 @@ defmodule Hexdocs.Search.Typesense do
     end
   end
 
+  @impl true
+  def delete(package, version) do
+    full_package = full_package(package, version)
+
+    query = URI.encode_query([{"filter_by", "package:#{full_package}"}])
+    url = url("collections/#{collection()}/documents?" <> query)
+    headers = [{"x-typesense-api-key", api_key()}]
+
+    case HTTP.delete(url, headers) do
+      {:ok, 200, _resp_headers, _body} ->
+        :ok
+
+      {:ok, status, _resp_headers, _body} ->
+        Logger.error("Failed to delete search items for #{package} #{version}: status=#{status}")
+
+      {:error, reason} ->
+        Logger.error(
+          "Failed to delete search items for #{package} #{version}: #{inspect(reason)}"
+        )
+    end
+  end
+
   @spec collection :: String.t()
   def collection do
     Application.fetch_env!(:hexdocs, :typesense_collection)
@@ -54,6 +77,10 @@ defmodule Hexdocs.Search.Typesense do
   @spec api_key :: String.t()
   def api_key do
     Application.fetch_env!(:hexdocs, :typesense_api_key)
+  end
+
+  defp full_package(package, version) do
+    "#{package}-#{version}"
   end
 
   defp url(path) do
