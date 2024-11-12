@@ -5,7 +5,7 @@ defmodule Hexdocs.MixProject do
     [
       app: :hexdocs,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.17",
       start_permanent: Mix.env() == :prod,
       releases: releases(),
       deps: deps()
@@ -42,7 +42,8 @@ defmodule Hexdocs.MixProject do
   defp releases() do
     [
       hexdocs: [
-        include_executables_for: [:unix]
+        include_executables_for: [:unix],
+        reboot_system_after_config: true
       ]
     ]
   end
