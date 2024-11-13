@@ -110,6 +110,12 @@ defmodule Hexdocs.Queue do
 
         case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
           {:ok, files} ->
+            if repository == "hexpm" do
+              if search_items = find_search_items(repository, package, version, files) do
+                Hexdocs.Search.index(package, version, search_items)
+              end
+            end
+
             files = rewrite_files(files)
 
             Hexdocs.Bucket.upload(
@@ -126,7 +132,7 @@ defmodule Hexdocs.Queue do
             end
 
             elapsed = System.os_time(:millisecond) - start
-            Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
+            Logger.info("FINISHED UPLOADING AND INDEXING DOCS #{key} #{elapsed}ms")
 
           {:error, reason} ->
             Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
@@ -249,5 +255,62 @@ defmodule Hexdocs.Queue do
         end)
       )
     end)
+  end
+
+  defp find_search_items(repository, package, version, files) do
+    maybe_json =
+      Enum.find_value(files, fn {path, content} ->
+        case Path.basename(path) do
+          "search_data-" <> _digest ->
+            "searchData=" <> json = content
+            json
+
+          "search_items-" <> _digest ->
+            "searchNodes=" <> json = content
+            json
+
+          _other ->
+            nil
+        end
+      end)
+
+    unless maybe_json do
+      Logger.error(
+        "Failed to find search_data or search_items for #{repository}/#{package} #{version}"
+      )
+    end
+
+    maybe_docs =
+      if maybe_json do
+        case Jason.decode(maybe_json) do
+          {:ok, json} ->
+            json
+
+          {:error, error} ->
+            Logger.error(
+              "Failed to decode search items json for #{repository}/#{package} #{version}: " <>
+                Exception.message(error)
+            )
+
+            nil
+        end
+      end
+
+    if maybe_docs do
+      case maybe_docs do
+        %{"items" => items} ->
+          items
+
+        items when is_list(items) ->
+          items
+
+        _ ->
+          Logger.error(
+            "Failed to extract items from search json for #{repository}/#{package} #{version}"
+          )
+
+          nil
+      end
+    end
   end
 end

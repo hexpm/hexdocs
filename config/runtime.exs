@@ -5,6 +5,8 @@ if config_env() == :prod do
     port: System.fetch_env!("HEXDOCS_PORT"),
     hexpm_url: System.fetch_env!("HEXDOCS_HEXPM_URL"),
     hexpm_secret: System.fetch_env!("HEXDOCS_HEXPM_SECRET"),
+    typesense_url: System.fetch_env!("TYPESENSE_URL"),
+    typesense_api_key: System.fetch_env!("TYPESENSE_API_KEY"),
     fastly_key: System.fetch_env!("HEXDOCS_FASTLY_KEY"),
     fastly_hexdocs: System.fetch_env!("HEXDOCS_FASTLY_HEXDOCS"),
     queue_id: System.fetch_env!("HEXDOCS_QUEUE_ID"),

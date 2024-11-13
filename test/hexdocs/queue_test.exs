@@ -5,8 +5,12 @@ defmodule Hexdocs.QueueTest do
   @bucket :docs_private_bucket
   @public_bucket :docs_public_bucket
 
-  setup do
+  setup tags do
     Mox.set_mox_global()
+
+    if tags[:typesense] do
+      typesense_new_collection()
+    end
 
     Mox.stub(HexpmMock, :hexdocs_sitemap, fn ->
       "this is the sitemap"
@@ -65,6 +69,70 @@ defmodule Hexdocs.QueueTest do
 
       assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
       assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "contents"
+    end
+
+    @tag :typesense
+    test "indexes public search_data", %{test: test} do
+      Mox.expect(HexpmMock, :get_package, fn repo, package ->
+        assert repo == "hexpm"
+        assert package == "#{test}"
+        %{"releases" => []}
+      end)
+
+      search_data = """
+      searchData={"items":[\
+      {"type":"module","title":"Example","doc":"example text","ref":"Example.html"},\
+      {"type":"function","title":"Example.test/4","doc":"does example things","ref":"Example.html#test/4"}\
+      ],"content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]}}\
+      """
+
+      key = "docs/#{test}-1.0.0.tar.gz"
+
+      tar =
+        Hexdocs.Tar.create([
+          {"index.html", "contents"},
+          {"dist/search_data-0F918FFD.js", search_data}
+        ])
+
+      Store.put!(:repo_bucket, key, tar)
+      ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+
+      assert [
+               %{
+                 "document" => %{
+                   "doc" => "example text",
+                   "id" => "0",
+                   "package" => "test put object indexes public search_data-1.0.0",
+                   "ref" => "Example.html",
+                   "title" => "Example",
+                   "type" => "module"
+                 }
+               },
+               %{
+                 "document" => %{
+                   "doc" => "does example things",
+                   "id" => "1",
+                   "package" => "test put object indexes public search_data-1.0.0",
+                   "ref" => "Example.html#test/4",
+                   "title" => "Example.test/4",
+                   "type" => "function"
+                 }
+               }
+             ] = typesense_search(%{"q" => "example", "query_by" => "title"})
+
+      assert [
+               %{
+                 "document" => %{
+                   "doc" => "does example things",
+                   "id" => "1",
+                   "package" => "test put object indexes public search_data-1.0.0",
+                   "ref" => "Example.html#test/4",
+                   "title" => "Example.test/4",
+                   "type" => "function"
+                 }
+               }
+             ] = typesense_search(%{"q" => "thing", "query_by" => "doc"})
     end
 
     @tag :capture_log
@@ -577,5 +645,37 @@ defmodule Hexdocs.QueueTest do
 
       {not versioned?, path}
     end)
+  end
+
+  defp typesense_new_collection do
+    headers = [{"x-typesense-api-key", "hexdocs"}, {"content-type", "application/json"}]
+
+    {:ok, 200, _resp_headers, _ref} =
+      :hackney.delete("http://localhost:8108/collections/hexdocs", headers)
+
+    payload = """
+    {
+      "name": "hexdocs",
+      "token_separators": [".", "_", "-", " ", ":", "@", "/"],
+      "fields": [
+        {"name": "type", "type": "string", "facet": true},
+        {"name": "title", "type": "string"},
+        {"name": "doc", "type": "string"},
+        {"name": "package", "type": "string", "facet": true}
+      ]
+    }
+    """
+
+    {:ok, 201, _resp_headers, _ref} =
+      :hackney.post("http://localhost:8108/collections", headers, payload)
+  end
+
+  defp typesense_search(query) do
+    url = "http://localhost:8108/collections/hexdocs/documents/search?" <> URI.encode_query(query)
+    headers = [{"x-typesense-api-key", "hexdocs"}]
+    {:ok, 200, _resp_headers, ref} = :hackney.get(url, headers)
+    {:ok, body} = :hackney.body(ref)
+    %{"hits" => hits} = Jason.decode!(body)
+    hits
   end
 end
