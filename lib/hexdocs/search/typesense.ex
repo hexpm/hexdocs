@@ -15,7 +15,7 @@ defmodule Hexdocs.Search.Typesense do
           Map.take(item, ["type", "ref", "title", "doc"])
           |> Map.put("package", full_package)
           |> Map.put("proglang", proglang)
-          |> Jason.encode_to_iodata!()
+          |> :json.encode()
 
         [json, ?\n]
       end)
@@ -28,7 +28,7 @@ defmodule Hexdocs.Search.Typesense do
         ndjson
         |> String.split("\n")
         |> Enum.each(fn json ->
-          case Jason.decode!(json) do
+          case :json.decode(json) do
             %{"success" => true} ->
               :ok
 

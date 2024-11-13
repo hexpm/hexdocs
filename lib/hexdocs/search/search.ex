@@ -51,14 +51,13 @@ defmodule Hexdocs.Search do
 
     search_data =
       if search_data_json do
-        case Jason.decode(search_data_json) do
-          {:ok, search_data} ->
-            search_data
-
-          {:error, error} ->
+        try do
+          :json.decode(search_data_json)
+        catch
+          _kind, reason ->
             Logger.error(
               "Failed to decode search data json for #{package} #{version}: " <>
-                Exception.message(error)
+                inspect(reason)
             )
 
             nil
