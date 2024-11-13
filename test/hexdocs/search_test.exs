@@ -208,6 +208,37 @@ defmodule Hexdocs.SearchTest do
              })
   end
 
+  test "logs errors when indexing invalid search items", %{package: package} do
+    files =
+      [
+        {"index.html", "contents"},
+        {"dist/search_data-0F918FFD.js",
+         """
+         searchData={"items":[\
+         {"type":["function"],"title":"Example.test/4","doc":"does example things","ref":["Example.html#test/4"]},\
+         {"type":"function","title":"Example.test/4","doc":"does example things","ref":"Example.html#test/4"},\
+         {"type":{"a":"module"},"title":"Example","doc":{"content":"example text"},"ref":"Example.html"},\
+         {"type":"module","title":"Example","doc":"example text","ref":"Example.html"}\
+         ],"content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]},\
+         "proglang":"elixir"}\
+         """}
+      ]
+
+    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+
+    assert log =~ "[error] Failed to index search item for #{package} 1.0.0 for document "
+    assert log =~ "Field `type` must be a string."
+    assert log =~ "Field `doc` must be a string."
+
+    # the valid documents should still be indexed
+    assert [_, _] =
+             typesense_search(%{
+               "q" => "example",
+               "query_by" => "title",
+               "filter" => "proglang:elixir"
+             })
+  end
+
   defp queue_put_message(key) do
     Jason.encode!(%{
       "Records" => [
