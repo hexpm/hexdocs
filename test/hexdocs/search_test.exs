@@ -147,7 +147,7 @@ defmodule Hexdocs.SearchTest do
     log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
 
     assert log =~
-             "[error] Failed to decode search data json for #{package} 1.0.0: unexpected end of input at position 10"
+             "[error] Failed to decode search data json for #{package} 1.0.0: :unexpected_end"
 
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
