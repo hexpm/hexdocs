@@ -20,8 +20,8 @@ defmodule Hexdocs.SourceRepo.GitHub do
     |> case do
       {:ok, 200, _headers, body} ->
         versions =
-          for tag <- Jason.decode!(body) do
-            "v" <> version = tag["name"]
+          for %{"name" => "v" <> version} <- Jason.decode!(body),
+              not String.ends_with?(version, "-latest") do
             Version.parse!(version)
           end
 

@@ -24,6 +24,5 @@ config :rollbax,
 
 config :sasl, sasl_error_logger: false
 
-config :logger,
-  level: :info,
-  metadata: [:request_id]
+config :logger, level: :info
+config :logger, :default_formatter, metadata: [:request_id]
