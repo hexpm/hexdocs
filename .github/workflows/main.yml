@@ -24,6 +24,9 @@ jobs:
       - name: Check mix format
         run: mix format --check-formatted
 
+      - name: Start Typesense
+        run: docker compose up -d typesense
+
       - name: Run tests
         run: |
-          mix test
+          mix test --include typesense

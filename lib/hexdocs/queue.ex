@@ -125,8 +125,12 @@ defmodule Hexdocs.Queue do
               update_package_sitemap(repository, key, package, files)
             end
 
+            if repository == "hexpm" do
+              update_search_index(key, package, version, files)
+            end
+
             elapsed = System.os_time(:millisecond) - start
-            Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
+            Logger.info("FINISHED UPLOADING AND INDEXING DOCS #{key} #{elapsed}ms")
 
           {:error, reason} ->
             Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
@@ -148,6 +152,10 @@ defmodule Hexdocs.Queue do
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
         update_index_sitemap(repository, key)
+
+        if repository == "hexpm" do
+          Hexdocs.Search.delete(package, version)
+        end
 
         elapsed = System.os_time(:millisecond) - start
         Logger.info("FINISHED DELETING DOCS #{key} #{elapsed}ms")
@@ -226,6 +234,14 @@ defmodule Hexdocs.Queue do
 
   defp update_package_sitemap(_repository, _key, _package, _files) do
     :ok
+  end
+
+  defp update_search_index(key, package, version, files) do
+    with {proglang, items} <- Hexdocs.Search.find_search_items(package, version, files) do
+      Logger.info("UPDATING SEARCH INDEX #{key}")
+      Hexdocs.Search.index(package, version, proglang, items)
+      Logger.info("UPDATED SEARCH INDEX #{key}")
+    end
   end
 
   @doc false
