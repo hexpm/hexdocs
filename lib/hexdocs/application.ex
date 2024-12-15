@@ -5,6 +5,7 @@ defmodule Hexdocs.Application do
 
   def start(_type, _args) do
     setup_tmp_dir()
+    :logger.add_handler(:sentry_handler, Sentry.LoggerHandler, %{})
 
     port = String.to_integer(Application.get_env(:hexdocs, :port))
     cowboy_options = [port: port]

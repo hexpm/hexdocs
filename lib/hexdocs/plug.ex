@@ -1,12 +1,13 @@
 defmodule Hexdocs.Plug do
   use Plug.Builder
   use Plug.ErrorHandler
-  use Hexdocs.Plug.Rollbax
   require Logger
 
   @key_html_fresh_time 60
   @key_asset_fresh_time 120
   @key_lifetime 60 * 60 * 24 * 29
+
+  use Sentry.PlugCapture
 
   if Mix.env() == :dev do
     use Plug.Debugger, otp_app: :my_app
@@ -27,6 +28,8 @@ defmodule Hexdocs.Plug do
   if Mix.env() != :test do
     plug(Logster.Plugs.Logger, excludes: [:params])
   end
+
+  plug(Sentry.PlugContext)
 
   plug(Plug.Head)
 

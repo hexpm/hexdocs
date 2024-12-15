@@ -1,4 +1,4 @@
-FROM hexpm/elixir:1.17.3-erlang-27.1.2-alpine-3.20.3 as build
+FROM hexpm/elixir:1.17.3-erlang-27.1.2-alpine-3.20.3 AS build
 
 # install build dependencies
 RUN apk add --no-cache --update git
@@ -27,7 +27,7 @@ RUN mix compile
 
 # build release
 COPY rel rel
-RUN mix release
+RUN mix do sentry.package_source_code, release
 
 # prepare release image
 FROM alpine:3.20.3 AS app
