@@ -37,8 +37,6 @@ config :hexdocs, :docs_private_bucket, name: "hexdocs-private-staging"
 
 config :hexdocs, :docs_public_bucket, name: "hexdocs-public-staging"
 
-config :rollbax, enabled: false
-
 config :logger, :console, format: "[$level] $metadata$message\n"
 
 import_config "#{Mix.env()}.exs"

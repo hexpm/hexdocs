@@ -17,10 +17,9 @@ config :hexdocs, :docs_public_bucket, implementation: Hexdocs.Store.GS
 config :ex_aws,
   json_codec: Jason
 
-config :rollbax,
-  environment: "prod",
-  enabled: true,
-  enable_crash_reports: true
+config :sentry,
+  enable_source_code_context: true,
+  root_source_code_paths: [File.cwd!()]
 
 config :sasl, sasl_error_logger: false
 
