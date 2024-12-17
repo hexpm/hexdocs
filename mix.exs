@@ -31,7 +31,7 @@ defmodule Hexdocs.MixProject do
       {:jason, "~> 1.1"},
       {:logster, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:sentry, "~> 10.0"},
+      {:sentry, "~> 10.8"},
       {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
       {:sweet_xml, "~> 0.7.0"},
       {:hex_core, "~> 0.9.0", only: [:dev, :test]},
