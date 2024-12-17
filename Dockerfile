@@ -1,7 +1,16 @@
-FROM hexpm/elixir:1.17.3-erlang-27.1.2-alpine-3.20.3 AS build
+ARG ELIXIR_VERSION=1.17.3
+ARG ERLANG_VERSION=27.2
+ARG DEBIAN_VERSION=bookworm-20241202-slim
+
+FROM hexpm/elixir:${ELIXIR_VERSION}-erlang-${ERLANG_VERSION}-debian-${DEBIAN_VERSION} AS build
+
+ENV LANG=C.UTF-8
 
 # install build dependencies
-RUN apk add --no-cache --update git
+RUN apt update && \
+    apt upgrade -y && \
+    apt install -y --no-install-recommends git build-essential && \
+    apt clean -y && rm -rf /var/lib/apt/lists/*
 
 # prepare build dir
 RUN mkdir /app
@@ -30,8 +39,12 @@ COPY rel rel
 RUN mix do sentry.package_source_code, release
 
 # prepare release image
-FROM alpine:3.20.3 AS app
-RUN apk add --no-cache --update bash openssl libgcc libstdc++ ncurses
+FROM debian:${DEBIAN_VERSION} AS app
+
+RUN apt update && \
+    apt upgrade -y && \
+    apt install --no-install-recommends -y bash openssl && \
+    apt clean -y && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir /app
 WORKDIR /app
@@ -41,3 +54,4 @@ RUN chown -R nobody: /app
 USER nobody
 
 ENV HOME=/app
+ENV LANG=C.UTF-8
