@@ -39,6 +39,10 @@ defmodule Hexdocs.QueueTest do
 
       assert Store.get(@bucket, "queuetest/#{test}/index.html") == "contents"
       assert Store.get(@bucket, "queuetest/#{test}/1.0.0/index.html") == "contents"
+
+      # no searchNodes for private packages.
+      docs_config = Store.get(@bucket, "queuetest/#{test}/docs_config.js")
+      ["var versionNodes = " <> _] = String.split(docs_config, [";", "\n"], trim: true)
     end
 
     test "upload public files", %{test: test} do
@@ -249,10 +253,12 @@ defmodule Hexdocs.QueueTest do
       assert Store.get(@public_bucket, "#{test}/3.0.0/index.html") == "contents"
       assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
 
-      assert "var versionNodes = " <> json = Store.get(@public_bucket, "#{test}/docs_config.js")
-      json = String.trim_trailing(json, ";")
+      docs_config = Store.get(@public_bucket, "#{test}/docs_config.js")
 
-      assert Jason.decode!(json) == [
+      ["var versionNodes = " <> versions_json, "var searchNodes = " <> search_json] =
+        String.split(docs_config, [";", "\n"], trim: true)
+
+      assert Jason.decode!(versions_json) == [
                %{
                  "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/3.0.0",
                  "version" => "v3.0.0",
@@ -260,9 +266,12 @@ defmodule Hexdocs.QueueTest do
                },
                %{
                  "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/1.0.0",
-                 "version" => "v1.0.0",
-                 "latest" => false
+                 "version" => "v1.0.0"
                }
+             ]
+
+      assert Jason.decode!(search_json) == [
+               %{"name" => "#{test}", "version" => "3.0.0"}
              ]
     end
 

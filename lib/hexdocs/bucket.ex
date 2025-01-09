@@ -77,19 +77,46 @@ defmodule Hexdocs.Bucket do
         Enum.sort([version | all_versions], &(Version.compare(&1, &2) == :gt))
       end
 
-    list =
+    latest_version = Hexdocs.Utils.latest_version(versions)
+
+    versions =
       for version <- versions do
-        %{
+        map = %{
           version: "v#{version}",
-          url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}"),
-          latest: Hexdocs.Utils.latest_version?(package, version, versions)
+          url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}")
         }
+
+        if latest_version == version do
+          Map.put(map, :latest, true)
+        else
+          map
+        end
+      end
+
+    search =
+      if repository == "hexpm" do
+        [%{name: package, version: Version.to_string(version)}]
       end
 
     path = "docs_config.js"
     unversioned_path = repository_path(repository, Path.join([package, path]))
     cdn_key = docs_config_cdn_key(repository, package)
-    data = ["var versionNodes = ", Jason.encode_to_iodata!(list), ";"]
+
+    data = [
+      "var versionNodes = ",
+      Jason.encode_to_iodata!(versions),
+      ";\n",
+      if search do
+        [
+          "var searchNodes = ",
+          Jason.encode_to_iodata!(search),
+          ";"
+        ]
+      else
+        []
+      end
+    ]
+
     {unversioned_path, cdn_key, data, public?(repository)}
   end
 
