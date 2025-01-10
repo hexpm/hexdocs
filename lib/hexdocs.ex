@@ -19,11 +19,11 @@ defmodule Hexdocs do
     }
   end
 
-  defp batched_send(keys) do
+  def batched_send(keys) do
     keys
     |> Stream.filter(&Regex.match?(@key_regex, &1))
     |> Stream.map(&build_message/1)
-    |> Task.async_stream(&send_message/1, max_concurrency: 10, ordered: false)
+    |> Task.async_stream(&send_message/1, max_concurrency: 10, ordered: false, timeout: 60_000)
     |> Stream.run()
   end
 
@@ -38,7 +38,7 @@ defmodule Hexdocs do
   def process_all_sitemaps(paths) do
     paths
     |> Stream.map(&%{"hexdocs:sitemap" => &1})
-    |> Task.async_stream(&send_message/1, max_concurrency: 10, ordered: false)
+    |> Task.async_stream(&send_message/1, max_concurrency: 10, ordered: false, timeout: 60_000)
     |> Stream.run()
   end
 end
