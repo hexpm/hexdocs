@@ -42,6 +42,8 @@ defmodule Hexdocs.Queue do
 
   @doc false
   def handle_message(%{data: %{"Event" => "s3:TestEvent"}} = message) do
+    Sentry.Context.set_extra_context(%{queue_event: "s3:TestEvent"})
+
     message
   end
 
@@ -51,6 +53,7 @@ defmodule Hexdocs.Queue do
   end
 
   def handle_message(%{data: %{"hexdocs:sitemap" => key}} = message) do
+    Sentry.Context.set_extra_context(%{queue_event: "hexdocs:sitemap"})
     Logger.info("#{key}: start")
 
     case key_components(key) do
@@ -86,6 +89,13 @@ defmodule Hexdocs.Queue do
 
     case key_components(key) do
       {:ok, repository, package, version} ->
+        Sentry.Context.set_extra_context(%{
+          queue_event: "ObjectCreated",
+          repository: repository,
+          package: package,
+          version: version
+        })
+
         body = Hexdocs.Store.get(:repo_bucket, key)
 
         {version, all_versions} =
@@ -148,6 +158,13 @@ defmodule Hexdocs.Queue do
 
     case key_components(key) do
       {:ok, repository, package, version} when package not in @special_package_names ->
+        Sentry.Context.set_extra_context(%{
+          queue_event: "ObjectRemoved",
+          repository: repository,
+          package: package,
+          version: version
+        })
+
         version = Version.parse!(version)
         all_versions = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
