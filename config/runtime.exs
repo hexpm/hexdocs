@@ -15,6 +15,8 @@ if config_env() == :prod do
     session_signing_salt: System.fetch_env!("HEXDOCS_SESSION_SIGNING_SALT"),
     session_encryption_salt: System.fetch_env!("HEXDOCS_SESSION_ENCRYPTION_SALT"),
     queue_concurrency: String.to_integer(System.fetch_env!("HEXDOCS_QUEUE_CONCURRENCY")),
+    github_user: System.fetch_env!("HEXDOCS_GITHUB_USER"),
+    github_token: System.fetch_env!("HEXDOCS_GITHUB_TOKEN"),
     host: System.fetch_env!("HEXDOCS_HOST")
 
   config :hexdocs, :repo_bucket, name: System.fetch_env!("HEXDOCS_REPO_BUCKET")

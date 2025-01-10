@@ -4,6 +4,8 @@ defmodule Hexdocs.SourceRepo.GitHub do
 
   @impl true
   def versions(repo) do
+    user = Application.get_env(:hexdocs, :github_user)
+    token = Application.get_env(:hexdocs, :github_token)
     url = @github_url <> "/repos/#{repo}/tags"
 
     headers = [
@@ -11,7 +13,8 @@ defmodule Hexdocs.SourceRepo.GitHub do
     ]
 
     options = [
-      :with_body
+      :with_body,
+      basic_auth: {user, token}
     ]
 
     Hexdocs.HTTP.retry("github", url, fn ->
