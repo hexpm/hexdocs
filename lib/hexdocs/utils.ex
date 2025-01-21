@@ -12,7 +12,7 @@ defmodule Hexdocs.Utils do
   end
 
   def latest_version(versions) do
-    Enum.find(versions, &(&1.pre != [])) || List.first(versions)
+    Enum.find(versions, &(&1.pre == [])) || List.first(versions)
   end
 
   def latest_version?(package, version, all_versions) when package in @special_package_names do
