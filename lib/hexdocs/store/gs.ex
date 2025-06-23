@@ -106,7 +106,7 @@ defmodule Hexdocs.Store.GS do
   end
 
   defp do_list(bucket, prefix, marker) do
-    url = url(bucket) <> "?prefix=#{prefix}&marker=#{marker}"
+    url = url(bucket) <> "?prefix=#{prefix}&marker=#{marker && URI.encode(marker)}"
 
     {:ok, 200, _headers, body} =
       Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.get(url, headers()) end)
