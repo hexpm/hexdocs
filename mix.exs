@@ -8,6 +8,7 @@ defmodule Hexdocs.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       releases: releases(),
+      aliases: aliases(),
       deps: deps()
     ]
   end
@@ -16,6 +17,20 @@ defmodule Hexdocs.MixProject do
     [
       extra_applications: [:eex, :logger, :runtime_tools, :inets],
       mod: {Hexdocs.Application, []}
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
+        "test.all": :test
+      ]
+    ]
+  end
+
+  defp aliases do
+    [
+      "test.all": ["test --include typesense --include integration"]
     ]
   end
 

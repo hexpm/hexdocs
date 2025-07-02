@@ -21,4 +21,4 @@ if :typesense in ExUnit.configuration()[:include] do
   end
 end
 
-ExUnit.start(exclude: [:typesense])
+ExUnit.start(exclude: [:typesense, :integration])
