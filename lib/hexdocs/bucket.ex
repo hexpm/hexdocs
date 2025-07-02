@@ -5,20 +5,20 @@ defmodule Hexdocs.Bucket do
   @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
 
   def upload_index_sitemap(sitemap) do
-    upload_content("sitemap", "sitemap.xml", sitemap)
+    upload_content("sitemap", "sitemap.xml", "text/xml", sitemap)
   end
 
   def upload_package_sitemap(package, sitemap) do
-    upload_content("sitemap/#{package}", "#{package}/sitemap.xml", sitemap)
+    upload_content("sitemap/#{package}", "#{package}/sitemap.xml", "text/xml", sitemap)
   end
 
   def upload_package_names_csv(contents) do
-    upload_content("package_names.csv", "package_names.csv", contents)
+    upload_content("package_names.csv", "package_names.csv", "text/csv", contents)
   end
 
-  defp upload_content(key, path, content) do
+  defp upload_content(key, path, content_type, content) do
     opts = [
-      content_type: "text/xml",
+      content_type: content_type,
       cache_control: "public, max-age=3600",
       meta: [{"surrogate-key", key}]
     ]
