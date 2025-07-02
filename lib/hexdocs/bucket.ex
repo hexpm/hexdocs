@@ -5,14 +5,18 @@ defmodule Hexdocs.Bucket do
   @gcs_put_debounce Application.compile_env!(:hexdocs, :gcs_put_debounce)
 
   def upload_index_sitemap(sitemap) do
-    upload_sitemap("sitemap", "sitemap.xml", sitemap)
+    upload_content("sitemap", "sitemap.xml", sitemap)
   end
 
   def upload_package_sitemap(package, sitemap) do
-    upload_sitemap("sitemap/#{package}", "#{package}/sitemap.xml", sitemap)
+    upload_content("sitemap/#{package}", "#{package}/sitemap.xml", sitemap)
   end
 
-  defp upload_sitemap(key, path, sitemap) do
+  def upload_package_names_csv(contents) do
+    upload_content("package_names.csv", "package_names.csv", contents)
+  end
+
+  defp upload_content(key, path, content) do
     opts = [
       content_type: "text/xml",
       cache_control: "public, max-age=3600",
@@ -21,7 +25,7 @@ defmodule Hexdocs.Bucket do
 
     Logger.info("Uploading docs_public_bucket #{path}")
 
-    case Hexdocs.Store.put(:docs_public_bucket, path, sitemap, opts) do
+    case Hexdocs.Store.put(:docs_public_bucket, path, content, opts) do
       {:ok, 200, _headers, _body} ->
         :ok
 

@@ -12,6 +12,10 @@ defmodule Hexdocs.QueueTest do
       "this is the sitemap"
     end)
 
+    Mox.stub(Hexdocs.HexRepo.Mock, :get_names, fn ->
+      {:ok, ["package1", "package2"]}
+    end)
+
     :ok
   end
 
@@ -58,6 +62,7 @@ defmodule Hexdocs.QueueTest do
       Store.put!(:repo_bucket, key, tar)
 
       ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
+
       assert_receive {:ack, ^ref, [_], []}
 
       assert ls(@public_bucket, "#{test}/") == [
@@ -69,6 +74,7 @@ defmodule Hexdocs.QueueTest do
 
       assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
       assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "contents"
+      assert Store.get(@public_bucket, "package_names.csv") == "package1\npackage2\n"
     end
 
     @tag :capture_log

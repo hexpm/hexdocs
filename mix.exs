@@ -14,7 +14,7 @@ defmodule Hexdocs.MixProject do
 
   def application do
     [
-      extra_applications: [:eex, :logger, :runtime_tools],
+      extra_applications: [:eex, :logger, :runtime_tools, :inets],
       mod: {Hexdocs.Application, []}
     ]
   end
@@ -34,7 +34,7 @@ defmodule Hexdocs.MixProject do
       {:sentry, "~> 10.8"},
       {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
       {:sweet_xml, "~> 0.7.0"},
-      {:hex_core, "~> 0.9.0", only: [:dev, :test]},
+      {:hex_core, "~> 0.11.0"},
       {:mox, "~> 1.0", only: :test}
     ]
   end

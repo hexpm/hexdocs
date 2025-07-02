@@ -3,6 +3,7 @@ File.mkdir("tmp")
 
 Mox.defmock(Hexdocs.HexpmMock, for: Hexdocs.Hexpm)
 Mox.defmock(Hexdocs.SourceRepo.Mock, for: Hexdocs.SourceRepo)
+Mox.defmock(Hexdocs.HexRepo.Mock, for: Hexdocs.HexRepo)
 
 if :typesense in ExUnit.configuration()[:include] do
   typesense_available? =
