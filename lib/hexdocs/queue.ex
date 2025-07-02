@@ -262,8 +262,8 @@ defmodule Hexdocs.Queue do
         csv = for name <- names, do: [name, "\n"]
         Hexdocs.Bucket.upload_package_names_csv(csv)
 
-      other ->
-        Logger.info("error: #{inspect(other)}")
+      {:error, reason} ->
+        Logger.error(inspect(reason))
     end
 
     Logger.info("UPDATED package_names.csv")

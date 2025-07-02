@@ -17,13 +17,13 @@ defmodule Hexdocs.HexRepo.HTTP do
         {:ok, names}
 
       {:ok, {status, _headers, body}} ->
-        Logger.error("""
+        message = """
         unexpected HTTP #{status}
 
         #{body}\
-        """)
+        """
 
-        {:error, :unexpected_response}
+        {:error, message}
 
       {:error, _reason} = error ->
         error
