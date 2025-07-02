@@ -12,6 +12,10 @@ defmodule Hexdocs.SearchTest do
     |> Mox.stub(:hexdocs_sitemap, fn -> "this is the sitemap" end)
     |> Mox.stub(:get_package, fn _repo, _package -> %{"releases" => []} end)
 
+    Mox.stub(Hexdocs.HexRepo.Mock, :get_names, fn ->
+      {:ok, ["package1", "package2"]}
+    end)
+
     orignal_search_impl = Application.get_env(:hexdocs, :search_impl)
     on_exit(fn -> Application.put_env(:hexdocs, :search_impl, orignal_search_impl) end)
     Application.put_env(:hexdocs, :search_impl, Typesense)

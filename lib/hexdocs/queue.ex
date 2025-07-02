@@ -133,6 +133,7 @@ defmodule Hexdocs.Queue do
             if Hexdocs.Utils.latest_version?(package, version, all_versions) do
               update_index_sitemap(repository, key)
               update_package_sitemap(repository, key, package, files)
+              update_package_names_csv(repository)
             end
 
             if repository == "hexpm" do
@@ -250,6 +251,25 @@ defmodule Hexdocs.Queue do
   end
 
   defp update_package_sitemap(_repository, _key, _package, _files) do
+    :ok
+  end
+
+  defp update_package_names_csv("hexpm") do
+    Logger.info("UPDATING package_names.csv")
+
+    case Hexdocs.HexRepo.get_names() do
+      {:ok, names} ->
+        csv = for name <- names, do: [name, "\n"]
+        Hexdocs.Bucket.upload_package_names_csv(csv)
+
+      {:error, reason} ->
+        Logger.error(inspect(reason))
+    end
+
+    Logger.info("UPDATED package_names.csv")
+  end
+
+  defp update_package_names_csv(_repository) do
     :ok
   end
 

@@ -8,14 +8,29 @@ defmodule Hexdocs.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       releases: releases(),
+      aliases: aliases(),
       deps: deps()
     ]
   end
 
   def application do
     [
-      extra_applications: [:eex, :logger, :runtime_tools],
+      extra_applications: [:eex, :logger, :runtime_tools, :inets],
       mod: {Hexdocs.Application, []}
+    ]
+  end
+
+  def cli do
+    [
+      preferred_envs: [
+        "test.all": :test
+      ]
+    ]
+  end
+
+  defp aliases do
+    [
+      "test.all": ["test --include typesense --include integration"]
     ]
   end
 
@@ -34,7 +49,7 @@ defmodule Hexdocs.MixProject do
       {:sentry, "~> 10.8"},
       {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
       {:sweet_xml, "~> 0.7.0"},
-      {:hex_core, "~> 0.9.0", only: [:dev, :test]},
+      {:hex_core, "~> 0.11.0"},
       {:mox, "~> 1.0", only: :test}
     ]
   end
