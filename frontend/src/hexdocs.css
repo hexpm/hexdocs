@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Calibri";
+  font-weight: normal;
+  font-style: normal;
+  src:
+    url("/fonts/Calibri.woff2") format("woff2"),
+    url("/fonts/Calibri.woff") format("woff");
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: normal;
+  font-style: normal;
+  src:
+    url("/fonts/JetBrainsMono-Regular.woff2") format("woff2"),
+    url("/fonts/JetBrainsMono-Regular.woff") format("woff");
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-inter: Inter, sans-serif;
+  --font-calibri: Calibri, sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --container-8xl: 1440px;
+
+  --color-gray-50: #f0f5f9;
+  --color-gray-100: #e1e8f0;
+  --color-gray-200: #cad5e0;
+  --color-gray-300: #91a4b7;
+  --color-gray-400: #61758a;
+  --color-gray-500: #445668;
+  --color-gray-600: #304254;
+  --color-gray-700: #1c2a3a;
+  --color-gray-800: #0d1829;
+  --color-gray-900: #030913;
+
+  --color-blue-50: #f3f7fc;
+  --color-blue-100: #e9f1fb;
+  --color-blue-200: #d2e2f6;
+  --color-blue-300: #a4c5ec;
+  --color-blue-400: #77a7e3;
+  --color-blue-500: #498ad9;
+  --color-blue-600: #1c6dd0;
+  --color-blue-700: #1454b2;
+  --color-blue-800: #0e3e95;
+  --color-blue-900: #082b78;
+
+  --color-purple-50: #f9f8fd;
+  --color-purple-100: #f4f2fd;
+  --color-purple-200: #e8e5fa;
+  --color-purple-300: #d2cbf5;
+  --color-purple-400: #bbb0f0;
+  --color-purple-500: #a596eb;
+  --color-purple-600: #8e7ce6;
+  --color-purple-700: #6a5ac5;
+  --color-purple-800: #4c3ea5;
+  --color-purple-900: #322785;
+
+  --color-green-50: #fffaf5;
+  --color-green-100: #e6f3ec;
+  --color-green-200: #cce6d9;
+  --color-green-300: #99ccb3;
+  --color-green-400: #66b38c;
+  --color-green-500: #339966;
+  --color-green-600: #008040;
+  --color-green-700: #006e42;
+  --color-green-800: #005c40;
+  --color-green-900: #004a3b;
+
+  --color-yellow-50: #fffaf5;
+  --color-yellow-100: #fff7ec;
+  --color-yellow-200: #ffeed9;
+  --color-yellow-300: #ffdcb2;
+  --color-yellow-400: #ffcb8c;
+  --color-yellow-500: #ffb965;
+  --color-yellow-600: #ffa83f;
+  --color-yellow-700: #db842e;
+  --color-yellow-800: #b7641f;
+  --color-yellow-900: #934814;
+
+  --color-red-50: #fdf5f5;
+  --color-red-100: #fdeced;
+  --color-red-200: #fad7da;
+  --color-red-300: #f5b0b5;
+  --color-red-400: #f08890;
+  --color-red-500: #eb616b;
+  --color-red-600: #e63946;
+  --color-red-700: #c52943;
+  --color-red-800: #a51c3f;
+  --color-red-900: #6e0a36;
+}
+
+.search-input:focus {
+  border-radius: 0.5rem;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: transparent;
+}

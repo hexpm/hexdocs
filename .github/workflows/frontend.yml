@@ -1,0 +1,59 @@
+name: Lustre Frontend CI
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    working-directory: ./frontend
+
+jobs:
+  test:
+    name: Test Lustre Frontend
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OTP and Gleam
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: 27.2
+          gleam-version: 1.12.0
+          rebar3-version: 3
+
+      - name: Install dependencies
+        run: gleam deps download
+
+      - name: Run tests
+        run: gleam test
+
+      - name: Check Gleam formatted
+        run: gleam format --check src test
+
+  build:
+    name: Build Lustre Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install OTP and Gleam
+        uses: erlef/setup-beam@v1
+        with:
+          otp-version: 27.2
+          gleam-version: 1.12.0
+          rebar3-version: 3
+
+      - name: Install dependencies
+        run: gleam deps download
+
+      - name: Build Hexdocs website
+        run: gleam run -m lustre/dev build
+
+      # - name: Copy files
+      #   run: |
+      #     mkdir _site
+      #     cp -r dist _site
+      #     cp -r assets _site
+
+      # - name: Upload artifacts
+      #   uses: actions/upload-pages-artifact@v3

@@ -6,3 +6,8 @@
 erl_crash.dump
 *.ez
 hexdocs-*.tar
+
+# Lustre need some additional ignores.
+/frontend/.lustre
+/frontend/build
+/frontend/dist

@@ -1,0 +1,57 @@
+name = "hexdocs"
+version = "1.0.0"
+target = "javascript"
+
+[dependencies]
+gleam_fetch = ">= 1.2.0 and < 2.0.0"
+gleam_hexpm = ">= 3.0.0 and < 4.0.0"
+gleam_http = ">= 4.0.0 and < 5.0.0"
+gleam_javascript = ">= 1.0.0 and < 2.0.0"
+gleam_regexp = ">= 1.1.0 and < 2.0.0"
+gleam_stdlib = ">= 0.54.0 and < 1.0.0"
+grille_pain = ">= 1.1.0 and < 2.0.0"
+lustre = ">= 5.0.0 and < 6.0.0"
+modem = ">= 2.0.0 and < 3.0.0"
+
+[dev-dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
+lustre_dev_tools = ">= 2.0.0 and < 3.0.0"
+
+[tools.lustre.dev]
+host = "0.0.0.0"
+
+[tools.lustre.build]
+minify = true
+
+[tools.lustre.html]
+lang = "en"
+title = "Hexdocs"
+meta = [{ name = "apple-mobile-web-app-title", content = "Hexdocs" }]
+stylesheets = [
+  { href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" },
+  { href = "https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" },
+]
+
+[[tools.lustre.html.links]]
+rel = "icon"
+href = "/favicon/favicon-96x96.png"
+sizes="96x96"
+type = "image/png"
+
+[[tools.lustre.html.links]]
+rel = "icon"
+type = "image/svg+xml"
+href = "/favicon/favicon.svg"
+
+[[tools.lustre.html.links]]
+rel = "shortcut icon"
+href = "/favicon/favicon.ico"
+
+[[tools.lustre.html.links]]
+rel = "apple-touch-icon"
+sizes = "180x180"
+href = "/favicon/apple-touch-icon.png"
+
+[[tools.lustre.html.links]]
+rel = "manifest"
+href = "/favicon/site.webmanifest"
