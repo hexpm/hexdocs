@@ -1,7 +1,11 @@
 defmodule Hexdocs.PlugTest do
   use ExUnit.Case, async: true
-  use Plug.Test
+  import Plug.Conn
+  import Plug.Test
+  import Mox
   alias Hexdocs.{HexpmMock, Store}
+
+  setup :verify_on_exit!
 
   @bucket :docs_private_bucket
 

@@ -42,8 +42,7 @@ defmodule Hexdocs.Search do
           json
 
         _ when is_binary(search_data_js) ->
-          Logger.error("Unexpected search_data format for #{package} #{version}")
-          nil
+          raise "Unexpected search_data format for #{package} #{version}"
 
         nil ->
           nil
@@ -55,12 +54,7 @@ defmodule Hexdocs.Search do
           :json.decode(search_data_json)
         catch
           _kind, reason ->
-            Logger.error(
-              "Failed to decode search data json for #{package} #{version}: " <>
-                inspect(reason)
-            )
-
-            nil
+            raise "Failed to decode search data json for #{package} #{version}: #{inspect(reason)}"
         end
       end
 
@@ -73,11 +67,7 @@ defmodule Hexdocs.Search do
         nil
 
       _ ->
-        Logger.error(
-          "Failed to extract search items and proglang from search data for #{package} #{version}"
-        )
-
-        nil
+        raise "Failed to extract search items and proglang from search data for #{package} #{version}"
     end
   end
 

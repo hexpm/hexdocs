@@ -77,20 +77,28 @@ defmodule Hexdocs.Queue do
     message
   end
 
-  @impl true
-  def handle_batch(_batcher, messages, _batch_info, _context) do
-    messages
+  def handle_message(%{data: %{"hexdocs:upload" => key}} = message) do
+    process_docs(key, :upload)
+    message
   end
 
-  defp handle_record(%{"eventName" => "ObjectCreated:" <> _, "s3" => s3}) do
+  def handle_message(%{data: %{"hexdocs:search" => key}} = message) do
+    process_docs(key, :search)
+    message
+  end
+
+  defp process_docs(key, type) do
     start = System.os_time(:millisecond)
-    key = s3["object"]["key"]
-    Logger.info("OBJECT CREATED #{key}")
+    event_name = if type == :upload, do: "hexdocs:upload", else: "hexdocs:search"
+    log_prefix = if type == :upload, do: "UPLOAD", else: "SEARCH INDEX"
+
+    Sentry.Context.set_extra_context(%{queue_event: event_name})
+    Logger.info("#{log_prefix} #{key}")
 
     case key_components(key) do
       {:ok, repository, package, version} ->
         Sentry.Context.set_extra_context(%{
-          queue_event: "ObjectCreated",
+          queue_event: event_name,
           repository: repository,
           package: package,
           version: version
@@ -98,54 +106,106 @@ defmodule Hexdocs.Queue do
 
         body = Hexdocs.Store.get(:repo_bucket, key)
 
-        {version, all_versions} =
-          if package in @special_package_names do
-            version =
-              case Version.parse(version) do
-                {:ok, version} ->
-                  version
+        case type do
+          :upload ->
+            process_upload(key, repository, package, version, body, start)
 
-                # main or MAJOR.MINOR
-                :error ->
-                  version
-              end
+          :search ->
+            process_search(key, package, version, body, start)
+        end
 
-            all_versions = Hexdocs.SourceRepo.versions!(Map.fetch!(@special_packages, package))
-            {version, all_versions}
-          else
-            version = Version.parse!(version)
-            all_versions = all_versions(repository, package)
-            {version, all_versions}
+      :error ->
+        Logger.info("#{key}: skip")
+    end
+  end
+
+  defp process_upload(key, repository, package, version, body, start) do
+    {version, all_versions} =
+      if package in @special_package_names do
+        version =
+          case Version.parse(version) do
+            {:ok, version} ->
+              version
+
+            # main or MAJOR.MINOR
+            :error ->
+              version
           end
 
-        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
-          {:ok, files} ->
-            files = rewrite_files(files)
+        all_versions = Hexdocs.SourceRepo.versions!(Map.fetch!(@special_packages, package))
+        {version, all_versions}
+      else
+        version = Version.parse!(version)
+        all_versions = all_versions(repository, package)
+        {version, all_versions}
+      end
 
-            Hexdocs.Bucket.upload(
-              repository,
-              package,
-              version,
-              all_versions,
-              files
-            )
+    case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
+      {:ok, files} ->
+        files = rewrite_files(files)
 
-            if Hexdocs.Utils.latest_version?(package, version, all_versions) do
-              update_index_sitemap(repository, key)
-              update_package_sitemap(repository, key, package, files)
-              update_package_names_csv(repository)
-            end
+        Hexdocs.Bucket.upload(
+          repository,
+          package,
+          version,
+          all_versions,
+          files
+        )
 
-            if repository == "hexpm" do
-              update_search_index(key, package, version, files)
-            end
-
-            elapsed = System.os_time(:millisecond) - start
-            Logger.info("FINISHED UPLOADING AND INDEXING DOCS #{key} #{elapsed}ms")
-
-          {:error, reason} ->
-            Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+        if Hexdocs.Utils.latest_version?(package, version, all_versions) do
+          update_index_sitemap(repository, key)
+          update_package_sitemap(repository, key, package, files)
+          update_package_names_csv(repository)
         end
+
+        elapsed = System.os_time(:millisecond) - start
+        Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
+
+      {:error, reason} ->
+        Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+    end
+  end
+
+  defp process_search(key, package, version, body, start) do
+    version = Version.parse!(version)
+
+    case Hexdocs.Tar.unpack(body, package: package, version: version) do
+      {:ok, files} ->
+        update_search_index(key, package, version, files)
+
+        elapsed = System.os_time(:millisecond) - start
+        Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
+
+      {:error, reason} ->
+        Logger.error("Failed unpack #{package} #{version}: #{reason}")
+    end
+  end
+
+  @impl true
+  def handle_batch(_batcher, messages, _batch_info, _context) do
+    messages
+  end
+
+  defp handle_record(%{"eventName" => "ObjectCreated:" <> _, "s3" => s3}) do
+    key = s3["object"]["key"]
+    Logger.info("OBJECT CREATED #{key}")
+
+    case key_components(key) do
+      {:ok, repository, _package, _version} ->
+        Sentry.Context.set_extra_context(%{
+          queue_event: "ObjectCreated",
+          repository: repository
+        })
+
+        # Publish upload message
+        publish_message(%{"hexdocs:upload" => key})
+
+        # Publish search message for hexpm repository
+        if repository == "hexpm" do
+          publish_message(%{"hexdocs:search" => key})
+        end
+
+        Logger.info("PUBLISHED MESSAGES FOR #{key}")
 
       :error ->
         :skip
@@ -279,6 +339,14 @@ defmodule Hexdocs.Queue do
       Hexdocs.Search.index(package, version, proglang, items)
       Logger.info("UPDATED SEARCH INDEX #{key}")
     end
+  end
+
+  defp publish_message(map) do
+    queue = Application.fetch_env!(:hexdocs, :queue_id)
+    message = Jason.encode!(map)
+
+    ExAws.SQS.send_message(queue, message)
+    |> ExAws.request!()
   end
 
   @doc false

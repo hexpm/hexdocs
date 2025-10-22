@@ -29,7 +29,7 @@ defmodule Hexdocs.SearchTest do
     tar = Hexdocs.Tar.create(files)
     key = "docs/#{package}-#{version}.tar.gz"
     Hexdocs.Store.put!(:repo_bucket, key, tar)
-    ref = Broadway.test_message(Hexdocs.Queue, queue_put_message(key))
+    ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
     assert_receive {:ack, ^ref, [_], []}
   end
 
@@ -131,60 +131,99 @@ defmodule Hexdocs.SearchTest do
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
-  test "logs an error message if search_data.js file has unexpected format", %{package: package} do
+  test "raises an error if search_data.js file has unexpected format", %{package: package} do
     files = [
       {"index.html", "contents"},
       {"dist/search_data-0F918FFD.js", "unexpected format"}
     ]
 
-    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
-    assert log =~ "[error] Unexpected search_data format for #{package} 1.0.0"
+    tar = Hexdocs.Tar.create(files)
+    key = "docs/#{package}-1.0.0.tar.gz"
+    Hexdocs.Store.put!(:repo_bucket, key, tar)
+    ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
+
+    assert_receive {:ack, ^ref, [],
+                    [
+                      %Broadway.Message{
+                        status: {:error, %RuntimeError{message: msg}, _stacktrace}
+                      }
+                    ]}
+
+    assert msg == "Unexpected search_data format for #{package} 1.0.0"
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
-  test "logs an error message if search_data.json cannot be decoded", %{package: package} do
+  test "raises an error if search_data.json cannot be decoded", %{package: package} do
     files = [
       {"index.html", "contents"},
       {"dist/search_data-0F918FFD.js", "searchData={\"items\":["}
     ]
 
-    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+    tar = Hexdocs.Tar.create(files)
+    key = "docs/#{package}-1.0.0.tar.gz"
+    Hexdocs.Store.put!(:repo_bucket, key, tar)
+    ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert log =~
-             "[error] Failed to decode search data json for #{package} 1.0.0: :unexpected_end"
+    assert_receive {:ack, ^ref, [],
+                    [
+                      %Broadway.Message{
+                        status: {:error, %RuntimeError{message: msg}, _stacktrace}
+                      }
+                    ]}
 
+    assert msg =~ "Failed to decode search data json for #{package} 1.0.0: :unexpected_end"
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
-  test "logs an error message if search_data has empty items", %{package: package} do
+  test "raises an error if search_data has empty items", %{package: package} do
     files = [
       {"index.html", "contents"},
       {"dist/search_data-0F918FFD.js", "searchData={\"items\":[]}"}
     ]
 
-    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+    tar = Hexdocs.Tar.create(files)
+    key = "docs/#{package}-1.0.0.tar.gz"
+    Hexdocs.Store.put!(:repo_bucket, key, tar)
+    ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert log =~
-             "[error] Failed to extract search items and proglang from search data for #{package} 1.0.0"
+    assert_receive {:ack, ^ref, [],
+                    [
+                      %Broadway.Message{
+                        status: {:error, %RuntimeError{message: msg}, _stacktrace}
+                      }
+                    ]}
+
+    assert msg ==
+             "Failed to extract search items and proglang from search data for #{package} 1.0.0"
 
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
-  test "logs an error message if search_data has no items", %{package: package} do
+  test "raises an error if search_data has no items", %{package: package} do
     files = [
       {"index.html", "contents"},
       {"dist/search_data-0F918FFD.js", "searchData={\"not_items\":[]}"}
     ]
 
-    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+    tar = Hexdocs.Tar.create(files)
+    key = "docs/#{package}-1.0.0.tar.gz"
+    Hexdocs.Store.put!(:repo_bucket, key, tar)
+    ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert log =~
-             "[error] Failed to extract search items and proglang from search data for #{package} 1.0.0"
+    assert_receive {:ack, ^ref, [],
+                    [
+                      %Broadway.Message{
+                        status: {:error, %RuntimeError{message: msg}, _stacktrace}
+                      }
+                    ]}
+
+    assert msg ==
+             "Failed to extract search items and proglang from search data for #{package} 1.0.0"
 
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
-  test "logs errors when indexing incomplete search items", %{package: package} do
+  test "raises an error when indexing incomplete search items", %{package: package} do
     files = [
       {"index.html", "contents"},
       {"dist/search_data-0F918FFD.js",
@@ -198,21 +237,23 @@ defmodule Hexdocs.SearchTest do
        """}
     ]
 
-    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+    tar = Hexdocs.Tar.create(files)
+    key = "docs/#{package}-1.0.0.tar.gz"
+    Hexdocs.Store.put!(:repo_bucket, key, tar)
+    ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert log =~ "[error] Failed to index search item for #{package} 1.0.0 for document "
-    assert log =~ "Field `doc` has been declared in the schema, but is not found in the document."
+    assert_receive {:ack, ^ref, [],
+                    [
+                      %Broadway.Message{
+                        status: {:error, %RuntimeError{message: msg}, _stacktrace}
+                      }
+                    ]}
 
-    # the valid documents should still be indexed
-    assert [_, _] =
-             typesense_search(%{
-               "q" => "example",
-               "query_by" => "title",
-               "filter" => "proglang:elixir"
-             })
+    assert msg =~ "Failed to index search item for #{package} 1.0.0 for document "
+    assert msg =~ "Field `doc` has been declared in the schema, but is not found in the document."
   end
 
-  test "logs errors when indexing invalid search items", %{package: package} do
+  test "raises an error when indexing invalid search items", %{package: package} do
     files =
       [
         {"index.html", "contents"},
@@ -228,30 +269,24 @@ defmodule Hexdocs.SearchTest do
          """}
       ]
 
-    log = capture_log(fn -> run_upload(package, "1.0.0", files) end)
+    tar = Hexdocs.Tar.create(files)
+    key = "docs/#{package}-1.0.0.tar.gz"
+    Hexdocs.Store.put!(:repo_bucket, key, tar)
+    ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert log =~ "[error] Failed to index search item for #{package} 1.0.0 for document "
-    assert log =~ "Field `type` must be a string."
-    assert log =~ "Field `doc` must be a string."
+    assert_receive {:ack, ^ref, [],
+                    [
+                      %Broadway.Message{
+                        status: {:error, %RuntimeError{message: msg}, _stacktrace}
+                      }
+                    ]}
 
-    # the valid documents should still be indexed
-    assert [_, _] =
-             typesense_search(%{
-               "q" => "example",
-               "query_by" => "title",
-               "filter" => "proglang:elixir"
-             })
+    assert msg =~ "Failed to index search item for #{package} 1.0.0 for document "
+    assert msg =~ "Field `type` must be a string."
   end
 
-  defp queue_put_message(key) do
-    Jason.encode!(%{
-      "Records" => [
-        %{
-          "eventName" => "ObjectCreated:Put",
-          "s3" => %{"object" => %{"key" => key}}
-        }
-      ]
-    })
+  defp queue_search_message(key) do
+    Jason.encode!(%{"hexdocs:search" => key})
   end
 
   defp queue_delete_message(key) do
