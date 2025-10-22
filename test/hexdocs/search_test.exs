@@ -142,12 +142,12 @@ defmodule Hexdocs.SearchTest do
     Hexdocs.Store.put!(:repo_bucket, key, tar)
     ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert_receive {:ack, ^ref,
+    assert_receive {:ack, ^ref, [],
                     [
                       %Broadway.Message{
                         status: {:error, %RuntimeError{message: msg}, _stacktrace}
                       }
-                    ], []}
+                    ]}
 
     assert msg == "Unexpected search_data format for #{package} 1.0.0"
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
@@ -164,12 +164,12 @@ defmodule Hexdocs.SearchTest do
     Hexdocs.Store.put!(:repo_bucket, key, tar)
     ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert_receive {:ack, ^ref,
+    assert_receive {:ack, ^ref, [],
                     [
                       %Broadway.Message{
                         status: {:error, %RuntimeError{message: msg}, _stacktrace}
                       }
-                    ], []}
+                    ]}
 
     assert msg =~ "Failed to decode search data json for #{package} 1.0.0: :unexpected_end"
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
@@ -186,12 +186,12 @@ defmodule Hexdocs.SearchTest do
     Hexdocs.Store.put!(:repo_bucket, key, tar)
     ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert_receive {:ack, ^ref,
+    assert_receive {:ack, ^ref, [],
                     [
                       %Broadway.Message{
                         status: {:error, %RuntimeError{message: msg}, _stacktrace}
                       }
-                    ], []}
+                    ]}
 
     assert msg ==
              "Failed to extract search items and proglang from search data for #{package} 1.0.0"
@@ -210,12 +210,12 @@ defmodule Hexdocs.SearchTest do
     Hexdocs.Store.put!(:repo_bucket, key, tar)
     ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert_receive {:ack, ^ref,
+    assert_receive {:ack, ^ref, [],
                     [
                       %Broadway.Message{
                         status: {:error, %RuntimeError{message: msg}, _stacktrace}
                       }
-                    ], []}
+                    ]}
 
     assert msg ==
              "Failed to extract search items and proglang from search data for #{package} 1.0.0"
@@ -242,12 +242,12 @@ defmodule Hexdocs.SearchTest do
     Hexdocs.Store.put!(:repo_bucket, key, tar)
     ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert_receive {:ack, ^ref,
+    assert_receive {:ack, ^ref, [],
                     [
                       %Broadway.Message{
                         status: {:error, %RuntimeError{message: msg}, _stacktrace}
                       }
-                    ], []}
+                    ]}
 
     assert msg =~ "Failed to index search item for #{package} 1.0.0 for document "
     assert msg =~ "Field `doc` has been declared in the schema, but is not found in the document."
@@ -274,12 +274,12 @@ defmodule Hexdocs.SearchTest do
     Hexdocs.Store.put!(:repo_bucket, key, tar)
     ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert_receive {:ack, ^ref,
+    assert_receive {:ack, ^ref, [],
                     [
                       %Broadway.Message{
                         status: {:error, %RuntimeError{message: msg}, _stacktrace}
                       }
-                    ], []}
+                    ]}
 
     assert msg =~ "Failed to index search item for #{package} 1.0.0 for document "
     assert msg =~ "Field `type` must be a string."
