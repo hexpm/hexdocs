@@ -33,17 +33,15 @@ defmodule Hexdocs.Search.Typesense do
               :ok
 
             %{"success" => false, "error" => error, "document" => document} ->
-              Logger.error(
-                "Failed to index search item for #{package} #{version} for document #{inspect(document)}: #{inspect(error)}"
-              )
+              raise "Failed to index search item for #{package} #{version} for document #{inspect(document)}: #{inspect(error)}"
           end
         end)
 
       {:ok, status, _resp_headers, _body} ->
-        Logger.error("Failed to index search items for #{package} #{version}: status=#{status}")
+        raise "Failed to index search items for #{package} #{version}: status=#{status}"
 
       {:error, reason} ->
-        Logger.error("Failed to index search items #{package} #{version}: #{inspect(reason)}")
+        raise "Failed to index search items #{package} #{version}: #{inspect(reason)}"
     end
   end
 
@@ -60,12 +58,10 @@ defmodule Hexdocs.Search.Typesense do
         :ok
 
       {:ok, status, _resp_headers, _body} ->
-        Logger.error("Failed to delete search items for #{package} #{version}: status=#{status}")
+        raise "Failed to delete search items for #{package} #{version}: status=#{status}"
 
       {:error, reason} ->
-        Logger.error(
-          "Failed to delete search items for #{package} #{version}: #{inspect(reason)}"
-        )
+        raise "Failed to delete search items for #{package} #{version}: #{inspect(reason)}"
     end
   end
 

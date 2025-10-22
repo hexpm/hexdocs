@@ -1,8 +1,9 @@
 defmodule Hexdocs.HexRepo do
   @callback get_names() :: {:ok, [binary()]} | {:error, term()}
 
-  @module Application.fetch_env!(:hexdocs, :hex_repo_impl)
+  @module Application.compile_env(:hexdocs, :hex_repo_impl)
 
+  @compile {:no_warn_undefined, [{@module, :get_names, 0}]}
   defdelegate get_names(), to: @module
 end
 

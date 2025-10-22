@@ -1,6 +1,9 @@
 defmodule Hexdocs.QueueTest do
   use ExUnit.Case
+  import Mox
   alias Hexdocs.{HexpmMock, Store}
+
+  setup :verify_on_exit!
 
   @bucket :docs_private_bucket
   @public_bucket :docs_public_bucket
@@ -374,6 +377,48 @@ defmodule Hexdocs.QueueTest do
     end
   end
 
+  describe "search index" do
+    setup do
+      # Set up a mock search implementation for these tests
+      original_impl = Application.get_env(:hexdocs, :search_impl)
+      Application.put_env(:hexdocs, :search_impl, Hexdocs.Search.Local)
+      on_exit(fn -> Application.put_env(:hexdocs, :search_impl, original_impl) end)
+      :ok
+    end
+
+    test "indexes search data for hexpm packages", %{test: test} do
+      key = "docs/#{test}-1.0.0.tar.gz"
+
+      tar =
+        Hexdocs.Tar.create([
+          {"index.html", "contents"},
+          {"dist/search_data-ABC123.js",
+           """
+           searchData={"items":[{"type":"module","title":"Example","doc":"example text","ref":"Example.html"}]}
+           """}
+        ])
+
+      Store.put!(:repo_bucket, key, tar)
+
+      ref = Broadway.test_message(Hexdocs.Queue, search_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+    end
+
+    test "handles missing search data gracefully", %{test: test} do
+      key = "docs/#{test}-1.0.0.tar.gz"
+      tar = Hexdocs.Tar.create([{"index.html", "contents"}])
+      Store.put!(:repo_bucket, key, tar)
+
+      ref = Broadway.test_message(Hexdocs.Queue, search_message(key))
+      assert_receive {:ack, ^ref, [_], []}
+    end
+
+    test "skips invalid keys", %{test: test} do
+      ref = Broadway.test_message(Hexdocs.Queue, search_message("invalid/key/#{test}"))
+      assert_receive {:ack, ^ref, [_], []}
+    end
+  end
+
   describe "delete object" do
     test "delete all docs when removing only version", %{test: test} do
       Mox.expect(HexpmMock, :get_package, fn repo, package ->
@@ -558,14 +603,7 @@ defmodule Hexdocs.QueueTest do
   end
 
   defp put_message(key) do
-    Jason.encode!(%{
-      "Records" => [
-        %{
-          "eventName" => "ObjectCreated:Put",
-          "s3" => %{"object" => %{"key" => key}}
-        }
-      ]
-    })
+    Jason.encode!(%{"hexdocs:upload" => key})
   end
 
   defp delete_message(key) do
@@ -577,6 +615,10 @@ defmodule Hexdocs.QueueTest do
         }
       ]
     })
+  end
+
+  defp search_message(key) do
+    Jason.encode!(%{"hexdocs:search" => key})
   end
 
   defp ls(bucket, prefix) do

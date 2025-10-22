@@ -305,10 +305,6 @@ defmodule Hexdocs.Bucket do
     |> purge()
   end
 
-  defp purge_hexdocs_cache("hexpm", package, _versions, :unversioned) do
-    purge([docspage_unversioned_cdn_key("hexpm", package)])
-  end
-
   defp purge_hexdocs_cache(_repository, _package, _version, _publish_unversioned?) do
     :ok
   end
