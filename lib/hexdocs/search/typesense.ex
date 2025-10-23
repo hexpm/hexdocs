@@ -76,12 +76,19 @@ defmodule Hexdocs.Search.Typesense do
       "fields" => [
         %{"facet" => true, "name" => "proglang", "type" => "string"},
         %{"facet" => true, "name" => "type", "type" => "string"},
-        %{"name" => "title", "type" => "string"},
-        %{"name" => "doc", "type" => "string"},
+        %{
+          "name" => "title",
+          "type" => "string",
+          "token_separators" => [".", "_", "-", "*", "`", ":", "@", "/"]
+        },
+        %{
+          "name" => "doc",
+          "type" => "string",
+          "token_separators" => [".", "_", "-", "*", "`", ":", "@", "/"]
+        },
         %{"facet" => true, "name" => "package", "type" => "string"}
       ],
-      "name" => collection,
-      "token_separators" => [".", "_", "-", " ", ":", "@", "/"]
+      "name" => collection
     }
   end
 
