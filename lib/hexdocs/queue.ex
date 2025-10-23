@@ -167,17 +167,23 @@ defmodule Hexdocs.Queue do
   end
 
   defp process_search(key, package, version, body, start) do
-    version = Version.parse!(version)
+    case Version.parse(version) do
+      {:ok, version} ->
+        case Hexdocs.Tar.unpack(body, package: package, version: version) do
+          {:ok, files} ->
+            update_search_index(key, package, version, files)
 
-    case Hexdocs.Tar.unpack(body, package: package, version: version) do
-      {:ok, files} ->
-        update_search_index(key, package, version, files)
+            elapsed = System.os_time(:millisecond) - start
+            Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
 
-        elapsed = System.os_time(:millisecond) - start
-        Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
+          {:error, reason} ->
+            Logger.error("Failed unpack #{package} #{version}: #{reason}")
+        end
 
-      {:error, reason} ->
-        Logger.error("Failed unpack #{package} #{version}: #{reason}")
+      :error when package in @special_package_names ->
+        # Skip for special packages, it's probably a tag push that's not valid semver
+        # and we don't need to index those
+        :ok
     end
   end
 
