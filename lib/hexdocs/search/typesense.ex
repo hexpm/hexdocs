@@ -13,6 +13,10 @@ defmodule Hexdocs.Search.Typesense do
       Enum.map(search_items, fn item ->
         json =
           Map.take(item, ["type", "ref", "title", "doc"])
+          |> Map.update("doc", "", fn
+            nil -> ""
+            doc -> doc
+          end)
           |> Map.put("package", full_package)
           |> Map.put("proglang", proglang)
           |> JSON.encode!()
