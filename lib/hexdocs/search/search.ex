@@ -50,10 +50,11 @@ defmodule Hexdocs.Search do
 
     search_data =
       if search_data_json do
-        try do
-          :json.decode(search_data_json)
-        catch
-          _kind, reason ->
+        case JSON.decode(search_data_json) do
+          {:ok, data} ->
+            data
+
+          {:error, reason} ->
             raise "Failed to decode search data json for #{package} #{version}: #{inspect(reason)}"
         end
       end

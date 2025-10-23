@@ -34,7 +34,7 @@ defmodule Hexdocs.CDN.Fastly do
       "content-type": "application/json"
     ]
 
-    body = Jason.encode!(body)
+    body = JSON.encode!(body)
 
     Hexdocs.HTTP.retry("fastly", url, fn -> :hackney.post(url, headers, body, []) end)
     |> read_body()
@@ -44,7 +44,7 @@ defmodule Hexdocs.CDN.Fastly do
     {:ok, body} = :hackney.body(client)
 
     body =
-      case Jason.decode(body) do
+      case JSON.decode(body) do
         {:ok, map} -> map
         {:error, _} -> body
       end

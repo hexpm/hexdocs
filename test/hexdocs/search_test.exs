@@ -288,11 +288,11 @@ defmodule Hexdocs.SearchTest do
   end
 
   defp queue_search_message(key) do
-    Jason.encode!(%{"hexdocs:search" => key})
+    JSON.encode!(%{"hexdocs:search" => key})
   end
 
   defp queue_delete_message(key) do
-    Jason.encode!(%{
+    JSON.encode!(%{
       "Records" => [
         %{
           "eventName" => "ObjectRemoved:Delete",
@@ -306,7 +306,7 @@ defmodule Hexdocs.SearchTest do
     collection = Typesense.collection()
     api_key = Typesense.api_key()
     headers = [{"x-typesense-api-key", api_key}, {"content-type", "application/json"}]
-    payload = Jason.encode_to_iodata!(Typesense.collection_schema(collection))
+    payload = JSON.encode_to_iodata!(Typesense.collection_schema(collection))
 
     assert {:ok, 201, _resp_headers, _ref} =
              :hackney.post("http://localhost:8108/collections", headers, payload)
@@ -325,7 +325,7 @@ defmodule Hexdocs.SearchTest do
     headers = [{"x-typesense-api-key", api_key}]
     assert {:ok, 200, _resp_headers, ref} = :hackney.get(url, headers)
     assert {:ok, body} = :hackney.body(ref)
-    assert %{"hits" => hits} = Jason.decode!(body)
+    assert %{"hits" => hits} = JSON.decode!(body)
     hits
   end
 end

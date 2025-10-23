@@ -23,7 +23,7 @@ defmodule Hexdocs.SourceRepo.GitHub do
     |> case do
       {:ok, 200, _headers, body} ->
         versions =
-          for %{"name" => "v" <> version} <- Jason.decode!(body),
+          for %{"name" => "v" <> version} <- JSON.decode!(body),
               not String.ends_with?(version, "-latest") do
             Version.parse!(version)
           end

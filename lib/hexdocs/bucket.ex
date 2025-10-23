@@ -108,12 +108,12 @@ defmodule Hexdocs.Bucket do
 
     data = [
       "var versionNodes = ",
-      Jason.encode_to_iodata!(versions),
+      JSON.encode_to_iodata!(versions),
       ";\n",
       if search do
         [
           "var searchNodes = ",
-          Jason.encode_to_iodata!(search),
+          JSON.encode_to_iodata!(search),
           ";"
         ]
       else

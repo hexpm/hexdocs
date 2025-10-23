@@ -16,7 +16,7 @@ defmodule Hexdocs.Hexpm.Impl do
         :ok
 
       {:ok, status, _headers, body} when status in [401, 403] ->
-        body = Jason.decode!(body)
+        body = JSON.decode!(body)
 
         if body["message"] in @refresh_errors do
           :refresh
@@ -36,7 +36,7 @@ defmodule Hexdocs.Hexpm.Impl do
       end)
 
     case result do
-      {:ok, 200, _headers, body} -> Jason.decode!(body)
+      {:ok, 200, _headers, body} -> JSON.decode!(body)
       {:ok, 404, _headers, _body} -> nil
     end
   end

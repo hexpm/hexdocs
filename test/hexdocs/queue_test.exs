@@ -267,7 +267,7 @@ defmodule Hexdocs.QueueTest do
       ["var versionNodes = " <> versions_json, "var searchNodes = " <> search_json] =
         String.split(docs_config, [";", "\n"], trim: true)
 
-      assert Jason.decode!(versions_json) == [
+      assert JSON.decode!(versions_json) == [
                %{
                  "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/3.0.0",
                  "version" => "v3.0.0",
@@ -279,7 +279,7 @@ defmodule Hexdocs.QueueTest do
                }
              ]
 
-      assert Jason.decode!(search_json) == [
+      assert JSON.decode!(search_json) == [
                %{"name" => "#{test}", "version" => "3.0.0"}
              ]
     end
@@ -574,7 +574,7 @@ defmodule Hexdocs.QueueTest do
 
     refute Store.get(@public_bucket, "#{test}/sitemap.xml")
 
-    ref = Broadway.test_message(Hexdocs.Queue, Jason.encode!(%{"hexdocs:sitemap" => key}))
+    ref = Broadway.test_message(Hexdocs.Queue, JSON.encode!(%{"hexdocs:sitemap" => key}))
     assert_receive {:ack, ^ref, [_], []}
 
     assert Store.get(@public_bucket, "#{test}/sitemap.xml")
@@ -603,11 +603,11 @@ defmodule Hexdocs.QueueTest do
   end
 
   defp put_message(key) do
-    Jason.encode!(%{"hexdocs:upload" => key})
+    JSON.encode!(%{"hexdocs:upload" => key})
   end
 
   defp delete_message(key) do
-    Jason.encode!(%{
+    JSON.encode!(%{
       "Records" => [
         %{
           "eventName" => "ObjectRemoved:Delete",
@@ -618,7 +618,7 @@ defmodule Hexdocs.QueueTest do
   end
 
   defp search_message(key) do
-    Jason.encode!(%{"hexdocs:search" => key})
+    JSON.encode!(%{"hexdocs:search" => key})
   end
 
   defp ls(bucket, prefix) do

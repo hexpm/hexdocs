@@ -29,7 +29,7 @@ defmodule Hexdocs do
 
   defp send_message(map) do
     queue = Application.fetch_env!(:hexdocs, :queue_id)
-    message = Jason.encode!(map)
+    message = JSON.encode!(map)
 
     ExAws.SQS.send_message(queue, message)
     |> ExAws.request!()

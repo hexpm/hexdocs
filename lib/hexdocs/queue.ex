@@ -36,7 +36,7 @@ defmodule Hexdocs.Queue do
   @impl true
   def handle_message(_processor, %Broadway.Message{} = message, _context) do
     message
-    |> Broadway.Message.update_data(&Jason.decode!/1)
+    |> Broadway.Message.update_data(&JSON.decode!/1)
     |> handle_message()
   end
 
@@ -349,7 +349,7 @@ defmodule Hexdocs.Queue do
 
   defp publish_message(map) do
     queue = Application.fetch_env!(:hexdocs, :queue_id)
-    message = Jason.encode!(map)
+    message = JSON.encode!(map)
 
     ExAws.SQS.send_message(queue, message)
     |> ExAws.request!()
