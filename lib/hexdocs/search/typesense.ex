@@ -27,13 +27,17 @@ defmodule Hexdocs.Search.Typesense do
       {:ok, 200, _resp_headers, ndjson} ->
         ndjson
         |> String.split("\n")
-        |> Enum.each(fn json ->
-          case :json.decode(json) do
+        |> Enum.zip(search_items)
+        |> Enum.each(fn {response, search_item} ->
+          case :json.decode(response) do
             %{"success" => true} ->
               :ok
 
-            %{"success" => false, "error" => error, "document" => document} ->
-              raise "Failed to index search item for #{package} #{version} for document #{inspect(document)}: #{inspect(error)}"
+            %{"success" => false, "error" => error} ->
+              error = if is_binary(error), do: error, else: inspect(error)
+
+              raise "Failed to index search item #{inspect(search_item)} for #{package} #{version}: " <>
+                      error
           end
         end)
 

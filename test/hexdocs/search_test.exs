@@ -249,7 +249,8 @@ defmodule Hexdocs.SearchTest do
                       }
                     ]}
 
-    assert msg =~ "Failed to index search item for #{package} 1.0.0 for document "
+    assert msg =~ "Failed to index search item "
+    assert msg =~ " for #{package} 1.0.0: "
     assert msg =~ "Field `doc` has been declared in the schema, but is not found in the document."
   end
 
@@ -281,7 +282,8 @@ defmodule Hexdocs.SearchTest do
                       }
                     ]}
 
-    assert msg =~ "Failed to index search item for #{package} 1.0.0 for document "
+    assert msg =~ "Failed to index search item "
+    assert msg =~ " for #{package} 1.0.0: "
     assert msg =~ "Field `type` must be a string."
   end
 
