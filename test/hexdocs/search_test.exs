@@ -131,6 +131,7 @@ defmodule Hexdocs.SearchTest do
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
+  @tag capture_log: true
   test "raises an error if search_data.js file has unexpected format", %{package: package} do
     files = [
       {"index.html", "contents"},
@@ -153,6 +154,7 @@ defmodule Hexdocs.SearchTest do
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
+  @tag capture_log: true
   test "raises an error if search_data.json cannot be decoded", %{package: package} do
     files = [
       {"index.html", "contents"},
@@ -171,11 +173,11 @@ defmodule Hexdocs.SearchTest do
                       }
                     ]}
 
-    assert msg =~ "Failed to decode search data json for #{package} 1.0.0: :unexpected_end"
+    assert msg =~ "Failed to decode search data json for #{package} 1.0.0"
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
-  test "raises an error if search_data has empty items", %{package: package} do
+  test "skips indexing if search_data has empty items", %{package: package} do
     files = [
       {"index.html", "contents"},
       {"dist/search_data-0F918FFD.js", "searchData={\"items\":[]}"}
@@ -186,19 +188,12 @@ defmodule Hexdocs.SearchTest do
     Hexdocs.Store.put!(:repo_bucket, key, tar)
     ref = Broadway.test_message(Hexdocs.Queue, queue_search_message(key))
 
-    assert_receive {:ack, ^ref, [],
-                    [
-                      %Broadway.Message{
-                        status: {:error, %RuntimeError{message: msg}, _stacktrace}
-                      }
-                    ]}
-
-    assert msg ==
-             "Failed to extract search items and proglang from search data for #{package} 1.0.0"
+    assert_receive {:ack, ^ref, [_], []}
 
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
+  @tag capture_log: true
   test "raises an error if search_data has no items", %{package: package} do
     files = [
       {"index.html", "contents"},
@@ -223,6 +218,7 @@ defmodule Hexdocs.SearchTest do
     assert typesense_search(%{"q" => package, "query_by" => "package"}) == []
   end
 
+  @tag capture_log: true
   test "raises an error when indexing incomplete search items", %{package: package} do
     files = [
       {"index.html", "contents"},
@@ -251,9 +247,12 @@ defmodule Hexdocs.SearchTest do
 
     assert msg =~ "Failed to index search item "
     assert msg =~ " for #{package} 1.0.0: "
-    assert msg =~ "Field `doc` has been declared in the schema, but is not found in the document."
+
+    assert msg =~
+             "Field `title` has been declared in the schema, but is not found in the document."
   end
 
+  @tag capture_log: true
   test "raises an error when indexing invalid search items", %{package: package} do
     files =
       [

@@ -340,10 +340,14 @@ defmodule Hexdocs.Queue do
   end
 
   defp update_search_index(key, package, version, files) do
-    with {proglang, items} <- Hexdocs.Search.find_search_items(package, version, files) do
-      Logger.info("UPDATING SEARCH INDEX #{key}")
-      Hexdocs.Search.index(package, version, proglang, items)
-      Logger.info("UPDATED SEARCH INDEX #{key}")
+    case Hexdocs.Search.find_search_items(package, version, files) do
+      {proglang, items} ->
+        Logger.info("UPDATING SEARCH INDEX #{key}")
+        Hexdocs.Search.index(package, version, proglang, items)
+        Logger.info("UPDATED SEARCH INDEX #{key}")
+
+      nil ->
+        Logger.info("SKIPPING SEARCH INDEX #{key} (invalid or missing search items)")
     end
   end
 

@@ -64,6 +64,9 @@ defmodule Hexdocs.Search do
         proglang = Map.get(search_data, "proglang") || proglang(search_items)
         {proglang, search_items}
 
+      %{"items" => []} ->
+        nil
+
       nil ->
         nil
 
