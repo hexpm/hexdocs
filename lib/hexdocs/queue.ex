@@ -342,6 +342,8 @@ defmodule Hexdocs.Queue do
   defp update_search_index(key, package, version, files) do
     case Hexdocs.Search.find_search_items(package, version, files) do
       {proglang, items} ->
+        Logger.info("DELETING SEARCH INDEX #{key}")
+        Hexdocs.Search.delete(package, version)
         Logger.info("UPDATING SEARCH INDEX #{key}")
         Hexdocs.Search.index(package, version, proglang, items)
         Logger.info("UPDATED SEARCH INDEX #{key}")
