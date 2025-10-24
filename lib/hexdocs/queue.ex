@@ -111,7 +111,7 @@ defmodule Hexdocs.Queue do
             process_upload(key, repository, package, version, body, start)
 
           :search ->
-            process_search(key, package, version, body, start)
+            process_search(key, repository, package, version, body, start)
         end
 
       :error ->
@@ -166,21 +166,25 @@ defmodule Hexdocs.Queue do
     end
   end
 
-  defp process_search(key, package, version, body, start) do
-    version =
-      case Version.parse(version) do
-        {:ok, version} -> version
-        :error when package in @special_package_names -> version
+  defp process_search(key, repository, package, version, body, start) do
+    if repository != "hexpm" do
+      Logger.warning("SKIPPING SEARCH INDEX #{key} (repository is not hexpm)")
+    else
+      version =
+        case Version.parse(version) do
+          {:ok, version} -> version
+          :error when package in @special_package_names -> version
+        end
+
+      case Hexdocs.Tar.unpack(body, package: package, version: version) do
+        {:ok, files} ->
+          update_search_index(key, package, version, files)
+          elapsed = System.os_time(:millisecond) - start
+          Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
+
+        {:error, reason} ->
+          Logger.error("Failed unpack #{package} #{version}: #{reason}")
       end
-
-    case Hexdocs.Tar.unpack(body, package: package, version: version) do
-      {:ok, files} ->
-        update_search_index(key, package, version, files)
-        elapsed = System.os_time(:millisecond) - start
-        Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
-
-      {:error, reason} ->
-        Logger.error("Failed unpack #{package} #{version}: #{reason}")
     end
   end
 
