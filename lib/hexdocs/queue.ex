@@ -167,23 +167,20 @@ defmodule Hexdocs.Queue do
   end
 
   defp process_search(key, package, version, body, start) do
-    case Version.parse(version) do
-      {:ok, version} ->
-        case Hexdocs.Tar.unpack(body, package: package, version: version) do
-          {:ok, files} ->
-            update_search_index(key, package, version, files)
+    version =
+      case Version.parse(version) do
+        {:ok, version} -> version
+        :error when package in @special_package_names -> version
+      end
 
-            elapsed = System.os_time(:millisecond) - start
-            Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
+    case Hexdocs.Tar.unpack(body, package: package, version: version) do
+      {:ok, files} ->
+        update_search_index(key, package, version, files)
+        elapsed = System.os_time(:millisecond) - start
+        Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
 
-          {:error, reason} ->
-            Logger.error("Failed unpack #{package} #{version}: #{reason}")
-        end
-
-      :error when package in @special_package_names ->
-        # Skip for special packages, it's probably a tag push that's not valid semver
-        # and we don't need to index those
-        :ok
+      {:error, reason} ->
+        Logger.error("Failed unpack #{package} #{version}: #{reason}")
     end
   end
 
@@ -342,6 +339,8 @@ defmodule Hexdocs.Queue do
   defp update_search_index(key, package, version, files) do
     case Hexdocs.Search.find_search_items(package, version, files) do
       {proglang, items} ->
+        Logger.info("DELETING SEARCH INDEX #{key}")
+        Hexdocs.Search.delete(package, version)
         Logger.info("UPDATING SEARCH INDEX #{key}")
         Hexdocs.Search.index(package, version, proglang, items)
         Logger.info("UPDATED SEARCH INDEX #{key}")
