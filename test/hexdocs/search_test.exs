@@ -117,6 +117,36 @@ defmodule Hexdocs.SearchTest do
              })
   end
 
+  test "prunes previous docs before updating search index", %{package: _package} do
+    package = "elixir"
+    version = "1.18"
+
+    run_upload(package, version, [
+      {"index.html", "contents"},
+      {"dist/search_data-0F918FFD.js",
+       """
+       searchData={"items":[\
+       {"type":"function","title":"Example.old_test/4","doc":"does old example things","ref":"Example.html#old_test/4"},\
+       {"type":"module","title":"Example","doc":"example text","ref":"Example.html"}\
+       ],"content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]}}\
+       """}
+    ])
+
+    run_upload(package, version, [
+      {"index.html", "contents"},
+      {"dist/search_data-0F918FFD.js",
+       """
+       searchData={"items":[\
+       {"type":"function","title":"Example.new_test/4","doc":"does new example things","ref":"Example.html#new_test/4"},\
+       {"type":"module","title":"Example","doc":"example text","ref":"Example.html"}\
+       ],"content_type":"text/markdown","producer":{"name":"ex_doc","version":[48,46,51,52,46,50]}}\
+       """}
+    ])
+
+    assert [%{"document" => %{"title" => "Example.new_test/4"}}] =
+             typesense_search(%{"q" => "test", "query_by" => "title"})
+  end
+
   test "logs an info message if search_data is not found", %{package: package} do
     original_log_level = Logger.level()
     Logger.configure(level: :info)
