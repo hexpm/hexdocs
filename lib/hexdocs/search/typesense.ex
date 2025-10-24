@@ -61,7 +61,7 @@ defmodule Hexdocs.Search.Typesense do
     url = url("collections/#{collection()}/documents?" <> query)
     headers = [{"x-typesense-api-key", api_key()}]
 
-    case HTTP.delete(url, headers) do
+    case HTTP.delete(url, headers, recv_timeout: 60_000) do
       {:ok, 200, _resp_headers, _body} ->
         :ok
 

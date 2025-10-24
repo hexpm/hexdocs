@@ -27,8 +27,8 @@ defmodule Hexdocs.HTTP do
     :hackney.post(url, headers, body, opts)
   end
 
-  def delete(url, headers) do
-    :hackney.delete(url, headers)
+  def delete(url, headers, opts \\ []) do
+    :hackney.delete(url, headers, "", opts)
     |> read_response()
   end
 
