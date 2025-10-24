@@ -119,7 +119,7 @@ defmodule Hexdocs.SearchTest do
 
   test "prunes previous docs before updating search index", %{package: _package} do
     package = "elixir"
-    version = "1.18"
+    version = "main"
 
     run_upload(package, version, [
       {"index.html", "contents"},
