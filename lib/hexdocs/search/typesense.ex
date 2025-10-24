@@ -5,6 +5,8 @@ defmodule Hexdocs.Search.Typesense do
 
   @behaviour Hexdocs.Search
 
+  @timeout 60_000
+
   @impl true
   def index(package, version, proglang, search_items) do
     full_package = full_package(package, version)
@@ -27,7 +29,7 @@ defmodule Hexdocs.Search.Typesense do
     url = url("collections/#{collection()}/documents/import?action=create")
     headers = [{"x-typesense-api-key", api_key()}]
 
-    case HTTP.post(url, headers, ndjson, [:with_body]) do
+    case HTTP.post(url, headers, ndjson, [:with_body, recv_timeout: @timeout]) do
       {:ok, 200, _resp_headers, ndjson} ->
         ndjson
         |> String.split("\n")
@@ -61,7 +63,7 @@ defmodule Hexdocs.Search.Typesense do
     url = url("collections/#{collection()}/documents?" <> query)
     headers = [{"x-typesense-api-key", api_key()}]
 
-    case HTTP.delete(url, headers, recv_timeout: 60_000) do
+    case HTTP.delete(url, headers, recv_timeout: @timeout) do
       {:ok, 200, _resp_headers, _body} ->
         :ok
 
