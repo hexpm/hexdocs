@@ -5,7 +5,7 @@ defmodule Hexdocs.FileRewriter do
   @link_hooks [@link_hook1, @link_hook2]
 
   @analytics_hook ~s|</head>|
-  @analytics_addition ~s|<script async defer data-domain="${DOMAIN}" src="https://stats.${DOMAIN}/js/script.js" onerror="console.warn('failed to load:', this.src)"></script>|
+  @analytics_addition "<script async defer src=\"https://s.${DOMAIN}/js/script.js\"></script><script>window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};plausible.init({endpoint:\"https://s.${DOMAIN}/api/event\"})</script>"
 
   @noindex_hook ~s|<meta name="robots" content="noindex">|
 
