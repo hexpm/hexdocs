@@ -5,7 +5,7 @@ defmodule Hexdocs.FileRewriter do
   @link_hooks [@link_hook1, @link_hook2]
 
   @analytics_hook ~s|</head>|
-  @analytics_addition ~s|<script async defer data-domain="${DOMAIN}" src="https://stats.${DOMAIN}/js/index.js"></script>|
+  @analytics_addition ~s|<script async defer data-domain="${DOMAIN}" src="https://stats.${DOMAIN}/js/index.js" onerror="console.warn('failed to load:', this.src)"></script>|
 
   @noindex_hook ~s|<meta name="robots" content="noindex">|
 
