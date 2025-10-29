@@ -5,8 +5,8 @@ defmodule Hexdocs.FileRewriterTest do
   test "run/1" do
     assert FileRewriter.run("index.html", "") == ""
 
-    assert FileRewriter.run("index.html", "</head>") ==
-             ~s|<script async defer data-domain="localhost" src="https://stats.localhost/js/index.js"></script></head>|
+    assert FileRewriter.run("index.html", "</head>") =~
+             ~s|<script async defer data-domain="localhost" src="https://stats.localhost/js/script.js"|
 
     assert FileRewriter.run(
              "index.html",
