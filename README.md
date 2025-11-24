@@ -1,6 +1,6 @@
 # Hexdocs
 
-[![Build Status](https://travis-ci.org/hexpm/hexdocs.svg?branch=master)](https://travis-ci.org/hexpm/hexdocs)
+For the homepage, see [hexdocs-search](https://github.com/hexpm/hexdocs-search).
 
 ## Setup
 
