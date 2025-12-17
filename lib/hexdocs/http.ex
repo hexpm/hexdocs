@@ -24,8 +24,12 @@ defmodule Hexdocs.HTTP do
   end
 
   def post(url, headers, body, opts \\ []) do
-    :hackney.post(url, headers, body, opts)
-    |> read_response()
+    if :with_body in opts do
+      :hackney.post(url, headers, body, opts)
+    else
+      :hackney.post(url, headers, body, opts)
+      |> read_response()
+    end
   end
 
   def delete(url, headers, opts \\ []) do

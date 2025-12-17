@@ -14,9 +14,6 @@ config :hexdocs, :docs_private_bucket, implementation: Hexdocs.Store.GS
 
 config :hexdocs, :docs_public_bucket, implementation: Hexdocs.Store.GS
 
-config :ex_aws,
-  json_codec: Jason
-
 config :sentry,
   enable_source_code_context: true,
   root_source_code_paths: [File.cwd!()],
