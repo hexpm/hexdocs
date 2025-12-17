@@ -14,182 +14,284 @@ defmodule Hexdocs.PlugTest do
     assert conn.status == 400
   end
 
-  test "redirect to hexpm with no session and no key" do
-    conn = conn(:get, "http://plugtest.localhost:5002/foo") |> call()
-    assert conn.status == 302
+  describe "OAuth flow" do
+    test "redirect to OAuth authorize with no session" do
+      conn = conn(:get, "http://plugtest.localhost:5002/foo") |> call()
+      assert conn.status == 302
 
-    assert get_resp_header(conn, "location") ==
-             ["http://localhost:5000/login?hexdocs=plugtest&return=/foo"]
+      [location] = get_resp_header(conn, "location")
+      assert String.starts_with?(location, "http://localhost:5000/oauth/authorize?")
+
+      uri = URI.parse(location)
+      query = URI.decode_query(uri.query)
+
+      assert query["response_type"] == "code"
+      assert query["client_id"] == "hexdocs"
+      assert query["scope"] == "docs:plugtest"
+      assert query["code_challenge_method"] == "S256"
+      assert query["state"] != nil
+      assert query["code_challenge"] != nil
+
+      # Should store PKCE verifier and state in session
+      assert get_session(conn, "oauth_code_verifier") != nil
+      assert get_session(conn, "oauth_state") != nil
+      assert get_session(conn, "oauth_return_path") == "/foo"
+    end
+
+    test "OAuth callback with invalid state returns error" do
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/oauth/callback?code=abc&state=wrong")
+        |> init_test_session(%{
+          "oauth_state" => "correct_state",
+          "oauth_code_verifier" => "verifier"
+        })
+        |> call()
+
+      assert conn.status == 403
+      assert conn.resp_body =~ "Invalid OAuth state"
+    end
+
+    test "OAuth callback with missing code returns error" do
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/oauth/callback?state=correct_state")
+        |> init_test_session(%{
+          "oauth_state" => "correct_state",
+          "oauth_code_verifier" => "verifier"
+        })
+        |> call()
+
+      assert conn.status == 400
+      assert conn.resp_body =~ "Missing authorization code"
+    end
+
+    test "OAuth callback with error parameter returns error" do
+      conn =
+        conn(
+          :get,
+          "http://plugtest.localhost:5002/oauth/callback?error=access_denied&error_description=User%20denied"
+        )
+        |> init_test_session(%{"oauth_state" => "state", "oauth_code_verifier" => "verifier"})
+        |> call()
+
+      assert conn.status == 403
+      assert conn.resp_body =~ "User denied"
+    end
+
+    test "serve page with valid OAuth token", %{test: test} do
+      Mox.expect(HexpmMock, :verify_key, fn token, organization ->
+        assert String.starts_with?(token, "eyJ")
+        assert organization == "plugtest"
+        :ok
+      end)
+
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
+      Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
+
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
+
+      assert conn.status == 200
+      assert conn.resp_body == "body"
+    end
+
+    test "redirect to OAuth when token expired and no refresh token" do
+      now = NaiveDateTime.utc_now()
+      expired = NaiveDateTime.add(now, -1800, :second)
+
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/foo")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "token_expires_at" => expired,
+          "token_created_at" => NaiveDateTime.add(expired, -1800, :second)
+        })
+        |> call()
+
+      assert conn.status == 302
+      [location] = get_resp_header(conn, "location")
+      assert String.starts_with?(location, "http://localhost:5000/oauth/authorize?")
+    end
   end
 
-  test "handle no path" do
-    conn = conn(:get, "http://plugtest.localhost:5002/") |> call()
-    assert conn.status == 302
+  describe "page serving with OAuth" do
+    test "serve 200 page", %{test: test} do
+      Mox.expect(HexpmMock, :verify_key, fn token, organization ->
+        assert String.starts_with?(token, "eyJ")
+        assert organization == "plugtest"
+        :ok
+      end)
 
-    assert get_resp_header(conn, "location") ==
-             ["http://localhost:5000/login?hexdocs=plugtest&return=/"]
-  end
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
+      Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
-  test "update session and redirect when key is set" do
-    conn = conn(:get, "http://plugtest.localhost:5002/foo?key=abc") |> call()
-    assert conn.status == 302
-    assert get_resp_header(conn, "location") == ["/foo"]
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
 
-    assert get_session(conn, "key") == "abc"
-    assert recent?(get_session(conn, "key_refreshed_at"))
-    assert recent?(get_session(conn, "key_created_at"))
-  end
+      assert conn.status == 200
+      assert conn.resp_body == "body"
+    end
 
-  test "redirect to hexpm with dead key" do
-    old = ~N[2018-01-01 00:00:00]
+    test "serve 404 page", %{test: test} do
+      Mox.expect(HexpmMock, :verify_key, fn token, organization ->
+        assert String.starts_with?(token, "eyJ")
+        assert organization == "plugtest"
+        :ok
+      end)
 
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/foo")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => old, "key_created_at" => old})
-      |> call()
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
+      Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
-    assert conn.status == 302
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/#{test}/404.html")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
 
-    assert get_resp_header(conn, "location") ==
-             ["http://localhost:5000/login?hexdocs=plugtest&return=/foo"]
-  end
+      assert conn.status == 404
+      assert conn.resp_body =~ "Page not found"
+    end
 
-  test "reverify stale key succeeds", %{test: test} do
-    Mox.expect(HexpmMock, :verify_key, fn key, organization ->
-      assert key == "abc"
-      assert organization == "plugtest"
-      :ok
-    end)
+    test "redirect to root", %{test: test} do
+      Mox.expect(HexpmMock, :verify_key, fn token, organization ->
+        assert String.starts_with?(token, "eyJ")
+        assert organization == "plugtest"
+        :ok
+      end)
 
-    old = NaiveDateTime.add(NaiveDateTime.utc_now(), -3600)
-    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
+      Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => old, "key_created_at" => old})
-      |> call()
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/#{test}")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
 
-    assert conn.status == 200
-    assert conn.resp_body == "body"
-  end
+      assert conn.status == 302
+      assert get_resp_header(conn, "location") == ["/#{test}/"]
+    end
 
-  test "reverify stale key requires refresh and redirects", %{test: test} do
-    Mox.expect(HexpmMock, :verify_key, fn key, organization ->
-      assert key == "abc"
-      assert organization == "plugtest"
-      :refresh
-    end)
+    test "serve index.html for root requests", %{test: test} do
+      Mox.expect(HexpmMock, :verify_key, fn token, organization ->
+        assert String.starts_with?(token, "eyJ")
+        assert organization == "plugtest"
+        :ok
+      end)
 
-    old = NaiveDateTime.add(NaiveDateTime.utc_now(), -3600)
-    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
+      Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
 
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/foo")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => old, "key_created_at" => old})
-      |> call()
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/#{test}/")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
 
-    assert conn.status == 302
+      assert conn.status == 200
+      assert conn.resp_body == "body"
+    end
 
-    assert get_resp_header(conn, "location") ==
-             ["http://localhost:5000/login?hexdocs=plugtest&return=/foo"]
-  end
+    test "serve docs_config.js for unversioned and versioned requests", %{test: test} do
+      Mox.expect(HexpmMock, :verify_key, 2, fn token, organization ->
+        assert String.starts_with?(token, "eyJ")
+        assert organization == "plugtest"
+        :ok
+      end)
 
-  test "reverify stale key fails" do
-    Mox.expect(HexpmMock, :verify_key, fn key, organization ->
-      assert key == "abc"
-      assert organization == "plugtest"
-      {:error, "account not authorized"}
-    end)
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
+      Store.put!(@bucket, "plugtest/#{test}/docs_config.js", "var versionNodes;")
 
-    old = NaiveDateTime.add(NaiveDateTime.utc_now(), -3600)
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/#{test}/docs_config.js")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
 
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/foo")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => old, "key_created_at" => old})
-      |> call()
+      assert conn.status == 200
+      assert conn.resp_body == "var versionNodes;"
 
-    assert conn.status == 403
-    assert conn.resp_body =~ "account not authorized"
-  end
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/#{test}/1.0.0/docs_config.js")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
 
-  test "serve 200 page", %{test: test} do
-    now = NaiveDateTime.utc_now()
-    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
+      assert conn.status == 200
+      assert conn.resp_body == "var versionNodes;"
+    end
 
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/#{test}/index.html")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => now, "key_created_at" => now})
-      |> call()
+    test "token verification fails redirects to OAuth" do
+      Mox.expect(HexpmMock, :verify_key, fn _token, _organization ->
+        {:error, "account not authorized"}
+      end)
 
-    assert conn.status == 200
-    assert conn.resp_body == "body"
-  end
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
 
-  test "serve 404 page", %{test: test} do
-    now = NaiveDateTime.utc_now()
-    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
+      conn =
+        conn(:get, "http://plugtest.localhost:5002/foo")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
 
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/#{test}/404.html")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => now, "key_created_at" => now})
-      |> call()
+      assert conn.status == 403
+      assert conn.resp_body =~ "account not authorized"
+    end
 
-    assert conn.status == 404
-    assert conn.resp_body =~ "Page not found"
-  end
+    test "handle no path redirects to OAuth" do
+      conn = conn(:get, "http://plugtest.localhost:5002/") |> call()
+      assert conn.status == 302
 
-  test "redirect to root", %{test: test} do
-    now = NaiveDateTime.utc_now()
-    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
-
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/#{test}")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => now, "key_created_at" => now})
-      |> call()
-
-    assert conn.status == 302
-    assert get_resp_header(conn, "location") == ["/#{test}/"]
-  end
-
-  test "serve index.html for root requests", %{test: test} do
-    now = NaiveDateTime.utc_now()
-    Store.put!(@bucket, "plugtest/#{test}/index.html", "body")
-
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/#{test}/")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => now, "key_created_at" => now})
-      |> call()
-
-    assert conn.status == 200
-    assert conn.resp_body == "body"
-  end
-
-  test "serve docs_config.js for unversioned and versioned requests", %{test: test} do
-    now = NaiveDateTime.utc_now()
-    Store.put!(@bucket, "plugtest/#{test}/docs_config.js", "var versionNodes;")
-
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/#{test}/docs_config.js")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => now, "key_created_at" => now})
-      |> call()
-
-    assert conn.status == 200
-    assert conn.resp_body == "var versionNodes;"
-
-    conn =
-      conn(:get, "http://plugtest.localhost:5002/#{test}/1.0.0/docs_config.js")
-      |> init_test_session(%{"key" => "abc", "key_refreshed_at" => now, "key_created_at" => now})
-      |> call()
-
-    assert conn.status == 200
-    assert conn.resp_body == "var versionNodes;"
+      [location] = get_resp_header(conn, "location")
+      assert String.starts_with?(location, "http://localhost:5000/oauth/authorize?")
+    end
   end
 
   defp call(conn) do
     Hexdocs.Plug.call(conn, [])
-  end
-
-  defp recent?(datetime) do
-    abs(NaiveDateTime.diff(datetime, NaiveDateTime.utc_now())) < 3
   end
 end

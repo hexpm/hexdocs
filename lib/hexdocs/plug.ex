@@ -3,9 +3,8 @@ defmodule Hexdocs.Plug do
   use Plug.ErrorHandler
   require Logger
 
-  @key_html_fresh_time 60
-  @key_asset_fresh_time 120
-  @key_lifetime 60 * 60 * 24 * 29
+  # OAuth token refresh buffer - refresh token 5 minutes before expiry
+  @token_refresh_buffer 5 * 60
 
   use Sentry.PlugCapture
 
@@ -43,7 +42,10 @@ defmodule Hexdocs.Plug do
     key: "_hexdocs_key",
     signing_salt: {Application, :get_env, [:hexdocs, :session_signing_salt]},
     encryption_salt: {Application, :get_env, [:hexdocs, :session_encryption_salt]},
-    max_age: 60 * 60 * 24 * 30
+    max_age: 60 * 60 * 24 * 30,
+    secure: Mix.env() == :prod,
+    http_only: true,
+    same_site: "Lax"
   )
 
   plug(:put_secret_key_base)
@@ -62,36 +64,196 @@ defmodule Hexdocs.Plug do
       !subdomain ->
         send_resp(conn, 400, "")
 
-      key = conn.query_params["key"] ->
-        update_key(conn, key)
+      # OAuth callback - exchange code for tokens
+      conn.request_path == "/oauth/callback" ->
+        handle_oauth_callback(conn, subdomain)
 
-      key = get_session(conn, "key") ->
-        try_serve_page(conn, subdomain, key)
+      # OAuth access token in session
+      access_token = get_session(conn, "access_token") ->
+        try_serve_page_oauth(conn, subdomain, access_token)
 
       true ->
-        redirect_hexpm(conn, subdomain)
+        redirect_oauth(conn, subdomain)
     end
   end
 
-  defp try_serve_page(conn, organization, key) do
-    created_at = get_session(conn, "key_created_at")
-    refreshed_at = get_session(conn, "key_refreshed_at")
+  defp redirect_oauth(conn, organization) do
+    code_verifier = Hexdocs.OAuth.generate_code_verifier()
+    code_challenge = Hexdocs.OAuth.generate_code_challenge(code_verifier)
+    state = Hexdocs.OAuth.generate_state()
 
-    if key_live?(created_at) do
-      if key_fresh?(refreshed_at, conn.path_info) do
+    redirect_uri = build_oauth_redirect_uri(conn, organization)
+
+    url =
+      Hexdocs.OAuth.authorization_url(
+        hexpm_url: Application.get_env(:hexdocs, :hexpm_url),
+        client_id: Application.get_env(:hexdocs, :oauth_client_id),
+        redirect_uri: redirect_uri,
+        scope: "docs:#{organization}",
+        state: state,
+        code_challenge: code_challenge
+      )
+
+    conn
+    |> put_session("oauth_code_verifier", code_verifier)
+    |> put_session("oauth_state", state)
+    |> put_session("oauth_return_path", conn.request_path)
+    |> redirect(url)
+  end
+
+  defp build_oauth_redirect_uri(_conn, organization) do
+    scheme = if Mix.env() == :prod, do: "https", else: "http"
+    host = Application.get_env(:hexdocs, :host)
+    "#{scheme}://#{organization}.#{host}/oauth/callback"
+  end
+
+  defp handle_oauth_callback(conn, organization) do
+    code = conn.query_params["code"]
+    state = conn.query_params["state"]
+    error = conn.query_params["error"]
+    stored_state = get_session(conn, "oauth_state")
+    code_verifier = get_session(conn, "oauth_code_verifier")
+    return_path = get_session(conn, "oauth_return_path") || "/"
+
+    cond do
+      error ->
+        # User denied authorization or other OAuth error
+        error_description = conn.query_params["error_description"] || error
+        send_resp(conn, 403, Hexdocs.Templates.auth_error(reason: error_description))
+
+      is_nil(state) or state != stored_state ->
+        send_resp(conn, 403, Hexdocs.Templates.auth_error(reason: "Invalid OAuth state"))
+
+      is_nil(code) ->
+        send_resp(conn, 400, Hexdocs.Templates.auth_error(reason: "Missing authorization code"))
+
+      true ->
+        exchange_oauth_code(conn, code, code_verifier, organization, return_path)
+    end
+  end
+
+  defp exchange_oauth_code(conn, code, code_verifier, organization, return_path) do
+    redirect_uri = build_oauth_redirect_uri(conn, organization)
+
+    opts =
+      Hexdocs.OAuth.config()
+      |> Keyword.put(:redirect_uri, redirect_uri)
+
+    case Hexdocs.OAuth.exchange_code(code, code_verifier, opts) do
+      {:ok, tokens} ->
+        conn
+        |> delete_session("oauth_code_verifier")
+        |> delete_session("oauth_state")
+        |> delete_session("oauth_return_path")
+        |> store_oauth_tokens(tokens)
+        |> redirect(return_path)
+
+      {:error, {_status, %{"error_description" => description}}} ->
+        send_resp(conn, 403, Hexdocs.Templates.auth_error(reason: description))
+
+      {:error, {_status, %{"error" => error}}} ->
+        send_resp(conn, 403, Hexdocs.Templates.auth_error(reason: error))
+
+      {:error, reason} ->
+        Logger.error("OAuth code exchange failed: #{inspect(reason)}")
+        send_resp(conn, 500, Hexdocs.Templates.auth_error(reason: "Authentication failed"))
+    end
+  end
+
+  defp store_oauth_tokens(conn, tokens) do
+    now = NaiveDateTime.utc_now()
+    expires_in = tokens["expires_in"] || 1800
+    expires_at = NaiveDateTime.add(now, expires_in, :second)
+
+    conn
+    |> put_session("access_token", tokens["access_token"])
+    |> put_session("refresh_token", tokens["refresh_token"])
+    |> put_session("token_expires_at", expires_at)
+    |> put_session("token_created_at", now)
+  end
+
+  defp try_serve_page_oauth(conn, organization, access_token) do
+    expires_at = get_session(conn, "token_expires_at")
+    refresh_token = get_session(conn, "refresh_token")
+
+    cond do
+      # Token needs refresh
+      token_needs_refresh?(expires_at) and refresh_token ->
+        case refresh_oauth_token(conn, refresh_token, organization) do
+          {:ok, conn, new_access_token} ->
+            serve_if_valid_oauth(conn, organization, new_access_token)
+
+          {:error, _reason} ->
+            # Refresh failed, re-authenticate
+            redirect_oauth(conn, organization)
+        end
+
+      # Token expired and no refresh token
+      token_expired?(expires_at) ->
+        redirect_oauth(conn, organization)
+
+      # Token is valid, serve the page
+      true ->
+        serve_if_valid_oauth(conn, organization, access_token)
+    end
+  end
+
+  defp token_needs_refresh?(nil), do: true
+
+  defp token_needs_refresh?(expires_at) do
+    now = NaiveDateTime.utc_now()
+    diff = NaiveDateTime.diff(expires_at, now)
+    diff <= @token_refresh_buffer
+  end
+
+  defp token_expired?(nil), do: true
+
+  defp token_expired?(expires_at) do
+    NaiveDateTime.compare(NaiveDateTime.utc_now(), expires_at) == :gt
+  end
+
+  defp refresh_oauth_token(conn, refresh_token, _organization) do
+    opts = Hexdocs.OAuth.config()
+
+    case Hexdocs.OAuth.refresh_token(refresh_token, opts) do
+      {:ok, tokens} ->
+        conn = store_oauth_tokens(conn, tokens)
+        {:ok, conn, tokens["access_token"]}
+
+      {:error, reason} ->
+        Logger.warning("OAuth token refresh failed: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
+
+  defp serve_if_valid_oauth(conn, organization, access_token) do
+    case Hexdocs.Hexpm.verify_key(access_token, organization) do
+      :ok ->
         serve_page(conn, organization)
-      else
-        serve_if_valid(conn, organization, key)
-      end
-    else
-      redirect_hexpm(conn, organization)
-    end
-  end
 
-  defp redirect_hexpm(conn, organization) do
-    hexpm_url = Application.get_env(:hexdocs, :hexpm_url)
-    url = "#{hexpm_url}/login?hexdocs=#{organization}&return=#{conn.request_path}"
-    redirect(conn, url)
+      :refresh ->
+        # Token was rejected, try to refresh or re-authenticate
+        refresh_token = get_session(conn, "refresh_token")
+
+        if refresh_token do
+          case refresh_oauth_token(conn, refresh_token, organization) do
+            {:ok, conn, new_access_token} ->
+              # Retry verification with new token
+              case Hexdocs.Hexpm.verify_key(new_access_token, organization) do
+                :ok -> serve_page(conn, organization)
+                _ -> redirect_oauth(conn, organization)
+              end
+
+            {:error, _} ->
+              redirect_oauth(conn, organization)
+          end
+        else
+          redirect_oauth(conn, organization)
+        end
+
+      {:error, message} ->
+        send_resp(conn, 403, Hexdocs.Templates.auth_error(reason: message))
+    end
   end
 
   defp subdomain(host) do
@@ -101,52 +263,6 @@ defmodule Hexdocs.Plug do
       [subdomain, ^app_host] -> subdomain
       _ -> nil
     end
-  end
-
-  defp key_fresh?(timestamp, path_info) do
-    file = List.last(path_info)
-    lifetime = file_lifetime(file)
-    NaiveDateTime.diff(NaiveDateTime.utc_now(), timestamp) <= lifetime
-  end
-
-  defp key_live?(timestamp) do
-    NaiveDateTime.diff(NaiveDateTime.utc_now(), timestamp) <= @key_lifetime
-  end
-
-  defp serve_if_valid(conn, organization, key) do
-    case Hexdocs.Hexpm.verify_key(key, organization) do
-      :ok ->
-        conn
-        |> put_session("key_refreshed_at", NaiveDateTime.utc_now())
-        |> serve_page(organization)
-
-      :refresh ->
-        redirect_hexpm(conn, organization)
-
-      {:error, message} ->
-        send_resp(conn, 403, Hexdocs.Templates.auth_error(reason: message))
-    end
-  end
-
-  defp file_lifetime(file) do
-    if Path.extname(file || "") in ["", ".html"] do
-      @key_html_fresh_time
-    else
-      @key_asset_fresh_time
-    end
-  end
-
-  defp update_key(conn, key) do
-    now = NaiveDateTime.utc_now()
-
-    params = Map.delete(conn.query_params, "key")
-    path = conn.request_path <> Plug.Conn.Query.encode(params)
-
-    conn
-    |> put_session("key", key)
-    |> put_session("key_refreshed_at", now)
-    |> put_session("key_created_at", now)
-    |> redirect(path)
   end
 
   defp serve_page(conn, organization) do
