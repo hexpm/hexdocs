@@ -9,16 +9,15 @@ defmodule Hexdocs.SourceRepo.GitHub do
     url = @github_url <> "/repos/#{repo}/tags"
 
     headers = [
-      accept: "application/json"
+      {"accept", "application/json"}
     ]
 
     options = [
-      :with_body,
       basic_auth: {user, token}
     ]
 
     Hexdocs.HTTP.retry("github", url, fn ->
-      :hackney.get(url, headers, "", options)
+      Hexdocs.HTTP.get(url, headers, options)
     end)
     |> case do
       {:ok, 200, _headers, body} ->
