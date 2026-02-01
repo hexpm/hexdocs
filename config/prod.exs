@@ -1,6 +1,7 @@
 import Config
 
 config :hexdocs,
+  scheme: "https",
   hexpm_impl: Hexdocs.Hexpm.Impl,
   store_impl: Hexdocs.Store.Impl,
   cdn_impl: Hexdocs.CDN.Fastly,

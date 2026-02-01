@@ -102,7 +102,7 @@ defmodule Hexdocs.Plug do
   end
 
   defp build_oauth_redirect_uri(_conn, organization) do
-    scheme = if Mix.env() == :prod, do: "https", else: "http"
+    scheme = Application.get_env(:hexdocs, :scheme)
     host = Application.get_env(:hexdocs, :host)
     "#{scheme}://#{organization}.#{host}/oauth/callback"
   end
