@@ -43,8 +43,10 @@ config :hexdocs, :docs_private_bucket, name: "hexdocs-private-staging"
 config :hexdocs, :docs_public_bucket, name: "hexdocs-public-staging"
 
 config :ex_aws,
-  http_client: ExAws.Request.Hackney,
-  json_codec: Jason
+  http_client: ExAws.Request.Req,
+  json_codec: JSON
+
+config :sentry, client: Sentry.FinchClient
 
 config :logger, :console, format: "[$level] $metadata$message\n"
 

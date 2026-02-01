@@ -29,20 +29,18 @@ defmodule Hexdocs.CDN.Fastly do
     url = @fastly_url <> url
 
     headers = [
-      "fastly-key": auth(),
-      accept: "application/json",
-      "content-type": "application/json"
+      {"fastly-key", auth()},
+      {"accept", "application/json"},
+      {"content-type", "application/json"}
     ]
 
     body = JSON.encode!(body)
 
-    Hexdocs.HTTP.retry("fastly", url, fn -> :hackney.post(url, headers, body, []) end)
-    |> read_body()
+    Hexdocs.HTTP.retry("fastly", url, fn -> Hexdocs.HTTP.post(url, headers, body) end)
+    |> decode_body()
   end
 
-  defp read_body({:ok, status, headers, client}) do
-    {:ok, body} = :hackney.body(client)
-
+  defp decode_body({:ok, status, headers, body}) do
     body =
       case JSON.decode(body) do
         {:ok, map} -> map

@@ -112,17 +112,17 @@ defmodule Hexdocs.OAuth do
         "code_verifier" => code_verifier
       }
       |> maybe_put("name", opts[:name])
-      |> Jason.encode!()
+      |> JSON.encode!()
 
     url = "#{hexpm_url}/api/oauth/token"
     headers = [{"content-type", "application/json"}]
 
     case Hexdocs.HTTP.post(url, headers, body) do
       {:ok, status, _headers, response_body} when status in 200..299 ->
-        {:ok, Jason.decode!(response_body)}
+        {:ok, JSON.decode!(response_body)}
 
       {:ok, status, _headers, response_body} ->
-        {:error, {status, Jason.decode!(response_body)}}
+        {:error, {status, JSON.decode!(response_body)}}
 
       {:error, reason} ->
         {:error, reason}
@@ -151,7 +151,7 @@ defmodule Hexdocs.OAuth do
     client_secret = Keyword.fetch!(opts, :client_secret)
 
     body =
-      Jason.encode!(%{
+      JSON.encode!(%{
         "grant_type" => "refresh_token",
         "refresh_token" => refresh_token,
         "client_id" => client_id,
@@ -163,10 +163,10 @@ defmodule Hexdocs.OAuth do
 
     case Hexdocs.HTTP.post(url, headers, body) do
       {:ok, status, _headers, response_body} when status in 200..299 ->
-        {:ok, Jason.decode!(response_body)}
+        {:ok, JSON.decode!(response_body)}
 
       {:ok, status, _headers, response_body} ->
-        {:error, {status, Jason.decode!(response_body)}}
+        {:error, {status, JSON.decode!(response_body)}}
 
       {:error, reason} ->
         {:error, reason}

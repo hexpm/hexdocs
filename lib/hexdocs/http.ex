@@ -5,62 +5,94 @@ defmodule Hexdocs.HTTP do
   require Logger
 
   def head(url, headers) do
-    :hackney.head(url, headers)
-  end
+    case Req.head(url, headers: headers, retry: false, decode_body: false) do
+      {:ok, response} ->
+        {:ok, response.status, normalize_headers(response.headers)}
 
-  def get(url, headers, opts \\ []) do
-    :hackney.get(url, headers, "", opts)
-    |> read_response()
-  end
-
-  def get_stream(url, headers) do
-    :hackney.get(url, headers)
-    |> stream_response()
-  end
-
-  def put(url, headers, body) do
-    :hackney.put(url, headers, body, recv_timeout: 10_000)
-    |> read_response()
-  end
-
-  def post(url, headers, body, opts \\ []) do
-    :hackney.post(url, headers, body, opts)
-    |> read_response()
-  end
-
-  def delete(url, headers, opts \\ []) do
-    :hackney.delete(url, headers, "", opts)
-    |> read_response()
-  end
-
-  defp read_response(result) do
-    with {:ok, status, headers, ref} <- result,
-         {:ok, body} <- :hackney.body(ref) do
-      {:ok, status, headers, body}
+      {:error, reason} ->
+        {:error, reason}
     end
   end
 
-  defp stream_response({:ok, status, headers, ref}) do
+  def get(url, headers, _opts \\ []) do
+    case Req.get(url, headers: headers, retry: false, decode_body: false) do
+      {:ok, response} ->
+        {:ok, response.status, normalize_headers(response.headers), response.body}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def get_stream(url, headers) do
+    case Req.get(url, headers: headers, retry: false, decode_body: false, into: :self) do
+      {:ok, response} ->
+        stream = stream_body(response.body)
+        {:ok, response.status, normalize_headers(response.headers), stream}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def put(url, headers, body) do
+    case Req.put(url,
+           headers: headers,
+           body: body,
+           retry: false,
+           decode_body: false,
+           receive_timeout: 10_000
+         ) do
+      {:ok, response} ->
+        {:ok, response.status, normalize_headers(response.headers), response.body}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def post(url, headers, body, _opts \\ []) do
+    case Req.post(url, headers: headers, body: body, retry: false, decode_body: false) do
+      {:ok, response} ->
+        {:ok, response.status, normalize_headers(response.headers), response.body}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  def delete(url, headers, _opts \\ []) do
+    case Req.delete(url, headers: headers, retry: false, decode_body: false) do
+      {:ok, response} ->
+        {:ok, response.status, normalize_headers(response.headers), response.body}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp normalize_headers(headers) do
+    Enum.map(headers, fn {name, values} -> {name, Enum.join(values, ", ")} end)
+  end
+
+  defp stream_body(ref) do
     start_fun = fn -> :cont end
     after_fun = fn _ -> :ok end
 
     next_fun = fn
       :cont ->
-        case :hackney.stream_body(ref) do
-          {:ok, data} -> {[{:ok, data}], :cont}
-          :done -> {:halt, :ok}
-          {:error, reason} -> {[{:error, reason}], :stop}
+        receive do
+          {^ref, {:data, data}} -> {[{:ok, data}], :cont}
+          {^ref, :done} -> {:halt, :ok}
+        after
+          30_000 -> {[{:error, :timeout}], :stop}
         end
 
       :stop ->
         {:halt, :ok}
     end
 
-    {:ok, status, headers, Stream.resource(start_fun, next_fun, after_fun)}
-  end
-
-  defp stream_response(other) do
-    other
+    Stream.resource(start_fun, next_fun, after_fun)
   end
 
   def retry(service, url, fun) do
