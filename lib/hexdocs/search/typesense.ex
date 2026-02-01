@@ -29,7 +29,7 @@ defmodule Hexdocs.Search.Typesense do
     url = url("collections/#{collection()}/documents/import?action=create")
     headers = [{"x-typesense-api-key", api_key()}]
 
-    case HTTP.post(url, headers, ndjson, [:with_body, recv_timeout: @timeout]) do
+    case HTTP.post(url, headers, ndjson, recv_timeout: @timeout) do
       {:ok, 200, _resp_headers, ndjson} ->
         ndjson
         |> String.split("\n")

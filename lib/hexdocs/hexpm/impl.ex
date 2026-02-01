@@ -56,10 +56,20 @@ defmodule Hexdocs.Hexpm.Impl do
     Application.get_env(:hexdocs, :hexpm_url) <> path
   end
 
-  defp headers(key) do
+  defp headers(key_or_token) do
+    # Support both legacy API keys and OAuth Bearer tokens
+    # OAuth tokens are JWTs that start with "eyJ" (base64 of '{"')
+    # Legacy API keys are shorter hex strings
+    authorization =
+      if String.starts_with?(key_or_token, "eyJ") do
+        "Bearer #{key_or_token}"
+      else
+        key_or_token
+      end
+
     [
       {"accept", "application/json"},
-      {"authorization", key}
+      {"authorization", authorization}
     ]
   end
 end

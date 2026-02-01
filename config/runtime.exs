@@ -5,6 +5,8 @@ if config_env() == :prod do
     port: System.fetch_env!("HEXDOCS_PORT"),
     hexpm_url: System.fetch_env!("HEXDOCS_HEXPM_URL"),
     hexpm_secret: System.fetch_env!("HEXDOCS_HEXPM_SECRET"),
+    oauth_client_id: System.fetch_env!("HEXDOCS_OAUTH_CLIENT_ID"),
+    oauth_client_secret: System.fetch_env!("HEXDOCS_OAUTH_CLIENT_SECRET"),
     typesense_url: System.fetch_env!("HEXDOCS_TYPESENSE_URL"),
     typesense_api_key: System.fetch_env!("HEXDOCS_TYPESENSE_API_KEY"),
     typesense_collection: System.fetch_env!("HEXDOCS_TYPESENSE_COLLECTION"),

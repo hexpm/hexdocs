@@ -42,7 +42,7 @@ defmodule Hexdocs.MixProject do
       {:ex_aws_s3, "~> 2.0"},
       {:ex_aws_sqs, "~> 3.0"},
       {:goth, "~> 1.0"},
-      {:hackney, "~> 1.13"},
+      {:req, "~> 0.5.0"},
       {:logster, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:sentry, "~> 11.0"},

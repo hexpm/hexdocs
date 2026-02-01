@@ -1,9 +1,13 @@
 import Config
 
 config :hexdocs,
+  scheme: "http",
   port: "4002",
   hexpm_url: "http://localhost:4000",
   hexpm_secret: "2cd6d09334d4b00a2be4d532342b799b",
+  # OAuth client credentials for hexpm integration
+  oauth_client_id: "hexdocs",
+  oauth_client_secret: "dev_secret_for_testing",
   typesense_url: "http://localhost:8108",
   typesense_api_key: "hexdocs",
   typesense_collection: "hexdocs",
@@ -37,6 +41,12 @@ config :hexdocs, :repo_bucket, name: "staging.s3.hex.pm"
 config :hexdocs, :docs_private_bucket, name: "hexdocs-private-staging"
 
 config :hexdocs, :docs_public_bucket, name: "hexdocs-public-staging"
+
+config :ex_aws,
+  http_client: ExAws.Request.Req,
+  json_codec: JSON
+
+config :sentry, client: Sentry.FinchClient
 
 config :logger, :console, format: "[$level] $metadata$message\n"
 

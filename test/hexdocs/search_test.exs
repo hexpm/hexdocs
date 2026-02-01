@@ -337,10 +337,12 @@ defmodule Hexdocs.SearchTest do
     headers = [{"x-typesense-api-key", api_key}, {"content-type", "application/json"}]
     payload = JSON.encode_to_iodata!(Typesense.collection_schema(collection))
 
-    assert {:ok, 201, _resp_headers, _ref} =
-             :hackney.post("http://localhost:8108/collections", headers, payload)
+    assert {:ok, 201, _resp_headers, _body} =
+             Hexdocs.HTTP.post("http://localhost:8108/collections", headers, payload)
 
-    on_exit(fn -> :hackney.delete("http://localhost:8108/collections/#{collection}", headers) end)
+    on_exit(fn ->
+      Hexdocs.HTTP.delete("http://localhost:8108/collections/#{collection}", headers)
+    end)
   end
 
   defp typesense_search(query) do
@@ -352,8 +354,7 @@ defmodule Hexdocs.SearchTest do
         URI.encode_query(query)
 
     headers = [{"x-typesense-api-key", api_key}]
-    assert {:ok, 200, _resp_headers, ref} = :hackney.get(url, headers)
-    assert {:ok, body} = :hackney.body(ref)
+    assert {:ok, 200, _resp_headers, body} = Hexdocs.HTTP.get(url, headers)
     assert %{"hits" => hits} = JSON.decode!(body)
     hits
   end

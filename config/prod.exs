@@ -1,6 +1,7 @@
 import Config
 
 config :hexdocs,
+  scheme: "https",
   hexpm_impl: Hexdocs.Hexpm.Impl,
   store_impl: Hexdocs.Store.Impl,
   cdn_impl: Hexdocs.CDN.Fastly,
@@ -13,9 +14,6 @@ config :hexdocs, :repo_bucket, implementation: Hexdocs.Store.S3
 config :hexdocs, :docs_private_bucket, implementation: Hexdocs.Store.GS
 
 config :hexdocs, :docs_public_bucket, implementation: Hexdocs.Store.GS
-
-config :ex_aws,
-  json_codec: Jason
 
 config :sentry,
   enable_source_code_context: true,
