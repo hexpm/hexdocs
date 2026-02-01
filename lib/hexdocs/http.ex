@@ -27,7 +27,7 @@ defmodule Hexdocs.HTTP do
   def get_stream(url, headers) do
     case Req.get(url, headers: headers, retry: false, decode_body: false, into: :self) do
       {:ok, response} ->
-        stream = stream_body(response.body)
+        stream = stream_body(response.body.ref)
         {:ok, response.status, normalize_headers(response.headers), stream}
 
       {:error, reason} ->
