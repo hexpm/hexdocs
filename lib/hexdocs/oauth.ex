@@ -103,14 +103,16 @@ defmodule Hexdocs.OAuth do
     redirect_uri = Keyword.fetch!(opts, :redirect_uri)
 
     body =
-      Jason.encode!(%{
+      %{
         "grant_type" => "authorization_code",
         "code" => code,
         "redirect_uri" => redirect_uri,
         "client_id" => client_id,
         "client_secret" => client_secret,
         "code_verifier" => code_verifier
-      })
+      }
+      |> maybe_put("name", opts[:name])
+      |> Jason.encode!()
 
     url = "#{hexpm_url}/api/oauth/token"
     headers = [{"content-type", "application/json"}]
@@ -183,4 +185,7 @@ defmodule Hexdocs.OAuth do
       client_secret: Application.get_env(:hexdocs, :oauth_client_secret)
     ]
   end
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
 end

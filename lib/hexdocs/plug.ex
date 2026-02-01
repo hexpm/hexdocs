@@ -138,6 +138,7 @@ defmodule Hexdocs.Plug do
     opts =
       Hexdocs.OAuth.config()
       |> Keyword.put(:redirect_uri, redirect_uri)
+      |> Keyword.put(:name, organization)
 
     case Hexdocs.OAuth.exchange_code(code, code_verifier, opts) do
       {:ok, tokens} ->
