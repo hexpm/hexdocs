@@ -1,7 +1,7 @@
 defmodule Hexdocs.Store.GS do
   @behaviour Hexdocs.Store.Docs
 
-  @gs_xml_url "https://storage.googleapis.com"
+  @default_gs_url "https://storage.googleapis.com"
 
   import SweetXml, only: [sigil_x: 2]
 
@@ -124,8 +124,14 @@ defmodule Hexdocs.Store.GS do
   end
 
   defp headers() do
-    {:ok, token} = Goth.fetch(Hexdocs.Goth)
-    [{"authorization", "#{token.type} #{token.token}"}]
+    case Application.get_env(:hexdocs, :gs_auth) do
+      nil ->
+        {:ok, token} = Goth.fetch(Hexdocs.Goth)
+        [{"authorization", "#{token.type} #{token.token}"}]
+
+      {mod, fun} ->
+        apply(mod, fun, [])
+    end
   end
 
   defp meta_headers(meta) do
@@ -134,8 +140,16 @@ defmodule Hexdocs.Store.GS do
     end)
   end
 
+  defp bucket(atom) when is_atom(atom) do
+    Application.get_env(:hexdocs, atom)[:name]
+  end
+
   defp url(bucket) do
-    @gs_xml_url <> "/" <> bucket
+    gs_url() <> "/" <> bucket(bucket)
+  end
+
+  defp gs_url do
+    Application.get_env(:hexdocs, :gs_url, @default_gs_url)
   end
 
   defp url(bucket, key) do
