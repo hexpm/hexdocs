@@ -9,11 +9,14 @@ defmodule Hexdocs.FileRewriter do
 
   @noindex_hook ~s|<meta name="robots" content="noindex">|
 
+  @official_domains ~w(hex.pm hexdocs.pm elixir-lang.org erlang.org)
+
   def run(path, content) do
     content
     |> add_elixir_org_link(path)
     |> add_analytics(path)
     |> remove_noindex(path)
+    |> add_nofollow(path)
   end
 
   defp add_elixir_org_link(content, path) do
@@ -41,5 +44,50 @@ defmodule Hexdocs.FileRewriter do
     else
       content
     end
+  end
+
+  @a_tag_re ~r/<a\s[^>]*href="https?:\/\/[^"]*"[^>]*>/
+  @href_re ~r/href="(https?:\/\/[^"]*)"/
+
+  defp add_nofollow(content, path) do
+    if String.ends_with?(path, ".html") do
+      Regex.replace(@a_tag_re, content, fn tag ->
+        case Regex.run(@href_re, tag) do
+          [_, href] ->
+            if official_link?(href) do
+              tag
+            else
+              add_rel_nofollow(tag)
+            end
+
+          _ ->
+            tag
+        end
+      end)
+    else
+      content
+    end
+  end
+
+  defp add_rel_nofollow(tag) do
+    if tag =~ ~r/\srel="/ do
+      Regex.replace(~r/\srel="([^"]*)"/, tag, fn _, existing ->
+        if "nofollow" in String.split(existing) do
+          ~s| rel="#{existing}"|
+        else
+          ~s| rel="#{existing} nofollow"|
+        end
+      end)
+    else
+      String.replace(tag, "<a ", ~s|<a rel="nofollow" |)
+    end
+  end
+
+  defp official_link?(href) do
+    uri = URI.parse(href)
+
+    Enum.any?(@official_domains, fn domain ->
+      uri.host == domain or (uri.host && String.ends_with?(uri.host, "." <> domain))
+    end)
   end
 end
