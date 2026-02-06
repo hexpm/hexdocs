@@ -24,12 +24,18 @@ defmodule Hexdocs.FileRewriterTest do
     end
 
     test "appends nofollow to existing rel attribute" do
-      assert FileRewriter.run("index.html", ~s|<a href="https://example.com" rel="help">example</a>|) ==
+      assert FileRewriter.run(
+               "index.html",
+               ~s|<a href="https://example.com" rel="help">example</a>|
+             ) ==
                ~s|<a href="https://example.com" rel="help nofollow">example</a>|
     end
 
     test "does not duplicate nofollow" do
-      assert FileRewriter.run("index.html", ~s|<a href="https://example.com" rel="nofollow">example</a>|) ==
+      assert FileRewriter.run(
+               "index.html",
+               ~s|<a href="https://example.com" rel="nofollow">example</a>|
+             ) ==
                ~s|<a href="https://example.com" rel="nofollow">example</a>|
     end
 
