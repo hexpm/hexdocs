@@ -102,7 +102,11 @@ defmodule Hexdocs.PlugGSTest do
     Application.put_env(:hexdocs, :store_impl, Hexdocs.Store.Impl)
     Application.put_env(:hexdocs, :gs_url, "http://localhost:#{port}")
     Application.put_env(:hexdocs, :gs_auth, {__MODULE__, :fake_gs_auth})
-    Application.put_env(:hexdocs, :docs_private_bucket, name: "hexdocs-private-test", implementation: Hexdocs.Store.GS)
+
+    Application.put_env(:hexdocs, :docs_private_bucket,
+      name: "hexdocs-private-test",
+      implementation: Hexdocs.Store.GS
+    )
 
     on_exit(fn ->
       Application.put_env(:hexdocs, :store_impl, original_store_impl)
