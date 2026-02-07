@@ -140,12 +140,8 @@ defmodule Hexdocs.Store.GS do
     end)
   end
 
-  defp bucket(atom) when is_atom(atom) do
-    Application.get_env(:hexdocs, atom)[:name]
-  end
-
   defp url(bucket) do
-    gs_url() <> "/" <> bucket(bucket)
+    gs_url() <> "/" <> bucket
   end
 
   defp gs_url do
