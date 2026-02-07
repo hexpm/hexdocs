@@ -15,7 +15,6 @@ defmodule Hexdocs.Store do
     @type opts :: Keyword.t()
 
     @callback get(bucket, key, opts) :: body | nil
-    @callback list(bucket, prefix) :: [key]
   end
 
   defmodule Docs do
