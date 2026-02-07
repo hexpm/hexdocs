@@ -46,7 +46,7 @@ config :ex_aws,
   http_client: ExAws.Request.Req,
   json_codec: JSON
 
-config :sentry, client: Sentry.FinchClient
+config :sentry, client: Hexdocs.SentryClient
 
 config :logger, :console, format: "[$level] $metadata$message\n"
 
