@@ -16,9 +16,8 @@ defmodule Hexdocs.HTTPTest do
   end
 
   setup do
-    port = Enum.random(50_000..60_000)
-    start_supervised!({Plug.Cowboy, plug: StreamingPlug, scheme: :http, port: port})
-    {:ok, port: port}
+    start_supervised!({Plug.Cowboy, plug: StreamingPlug, scheme: :http, port: 0})
+    {:ok, port: :ranch.get_port(StreamingPlug.HTTP)}
   end
 
   describe "get_stream/2" do
