@@ -1,11 +1,17 @@
 defmodule Hexdocs.HTTP do
   @max_retry_times 5
   @base_sleep_time 200
+  @receive_timeout 30_000
 
   require Logger
 
   def head(url, headers) do
-    case Req.head(url, headers: headers, retry: false, decode_body: false) do
+    case Req.head(url,
+           headers: headers,
+           retry: false,
+           decode_body: false,
+           receive_timeout: @receive_timeout
+         ) do
       {:ok, response} ->
         {:ok, response.status, normalize_headers(response.headers)}
 
@@ -14,8 +20,15 @@ defmodule Hexdocs.HTTP do
     end
   end
 
-  def get(url, headers, _opts \\ []) do
-    case Req.get(url, headers: headers, retry: false, decode_body: false) do
+  def get(url, headers, opts \\ []) do
+    timeout = Keyword.get(opts, :receive_timeout, @receive_timeout)
+
+    case Req.get(url,
+           headers: headers,
+           retry: false,
+           decode_body: false,
+           receive_timeout: timeout
+         ) do
       {:ok, response} ->
         {:ok, response.status, normalize_headers(response.headers), response.body}
 
@@ -25,7 +38,13 @@ defmodule Hexdocs.HTTP do
   end
 
   def get_stream(url, headers) do
-    case Req.get(url, headers: headers, retry: false, decode_body: false, into: :self) do
+    case Req.get(url,
+           headers: headers,
+           retry: false,
+           decode_body: false,
+           receive_timeout: @receive_timeout,
+           into: :self
+         ) do
       {:ok, response} ->
         stream = stream_body(response.body.ref)
         {:ok, response.status, normalize_headers(response.headers), stream}
@@ -41,7 +60,7 @@ defmodule Hexdocs.HTTP do
            body: body,
            retry: false,
            decode_body: false,
-           receive_timeout: 10_000
+           receive_timeout: @receive_timeout
          ) do
       {:ok, response} ->
         {:ok, response.status, normalize_headers(response.headers), response.body}
@@ -51,8 +70,16 @@ defmodule Hexdocs.HTTP do
     end
   end
 
-  def post(url, headers, body, _opts \\ []) do
-    case Req.post(url, headers: headers, body: body, retry: false, decode_body: false) do
+  def post(url, headers, body, opts \\ []) do
+    timeout = Keyword.get(opts, :receive_timeout, @receive_timeout)
+
+    case Req.post(url,
+           headers: headers,
+           body: body,
+           retry: false,
+           decode_body: false,
+           receive_timeout: timeout
+         ) do
       {:ok, response} ->
         {:ok, response.status, normalize_headers(response.headers), response.body}
 
@@ -61,8 +88,15 @@ defmodule Hexdocs.HTTP do
     end
   end
 
-  def delete(url, headers, _opts \\ []) do
-    case Req.delete(url, headers: headers, retry: false, decode_body: false) do
+  def delete(url, headers, opts \\ []) do
+    timeout = Keyword.get(opts, :receive_timeout, @receive_timeout)
+
+    case Req.delete(url,
+           headers: headers,
+           retry: false,
+           decode_body: false,
+           receive_timeout: timeout
+         ) do
       {:ok, response} ->
         {:ok, response.status, normalize_headers(response.headers), response.body}
 
