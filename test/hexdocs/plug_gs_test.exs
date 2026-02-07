@@ -90,8 +90,8 @@ defmodule Hexdocs.PlugGSTest do
     :ets.delete_all_objects(:mock_gcs_files)
 
     # Start mock GCS server
-    port = Enum.random(50_000..60_000)
-    start_supervised!({Plug.Cowboy, plug: MockGCSPlug, scheme: :http, port: port})
+    start_supervised!({Plug.Cowboy, plug: MockGCSPlug, scheme: :http, port: 0})
+    port = :ranch.get_port(MockGCSPlug.HTTP)
 
     # Configure to use GS store with mock server
     original_store_impl = Application.get_env(:hexdocs, :store_impl)

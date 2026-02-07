@@ -106,12 +106,16 @@ defmodule Hexdocs.Queue do
 
         body = Hexdocs.Store.get(:repo_bucket, key)
 
-        case type do
-          :upload ->
-            process_upload(key, repository, package, version, body, start)
+        if body do
+          case type do
+            :upload ->
+              process_upload(key, repository, package, version, body, start)
 
-          :search ->
-            process_search(key, repository, package, version, body, start)
+            :search ->
+              process_search(key, repository, package, version, body, start)
+          end
+        else
+          Logger.error("#{log_prefix} #{key}: package not found in store")
         end
 
       :error ->
