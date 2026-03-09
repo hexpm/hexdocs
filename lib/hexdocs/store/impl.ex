@@ -12,6 +12,11 @@ defmodule Hexdocs.Store.Impl do
     impl.get(name, key, opts)
   end
 
+  def get_to_file(bucket, key, dest, opts) do
+    {impl, name} = bucket(bucket)
+    impl.get_to_file(name, key, dest, opts)
+  end
+
   def head_page(bucket, key, opts) do
     {impl, name} = bucket(bucket)
     impl.head_page(name, key, opts)
@@ -35,6 +40,11 @@ defmodule Hexdocs.Store.Impl do
   def put!(bucket, key, body, opts) do
     {impl, name} = bucket(bucket)
     impl.put!(name, key, body, opts)
+  end
+
+  def put_file!(bucket, key, source, opts) do
+    {impl, name} = bucket(bucket)
+    impl.put_file!(name, key, source, opts)
   end
 
   def delete_many(bucket, keys) do

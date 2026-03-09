@@ -12,6 +12,7 @@ defmodule Hexdocs.Application do
     Logger.info("Running Cowboy with #{inspect(cowboy_options)}")
 
     children = [
+      Hexdocs.TmpDir,
       {Task.Supervisor, name: Hexdocs.Tasks},
       {Hexdocs.Debouncer, name: Hexdocs.Debouncer},
       goth_spec(),

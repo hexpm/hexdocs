@@ -26,6 +26,17 @@ defmodule Hexdocs.Store.Local do
     end
   end
 
+  def get_to_file(bucket, key, dest, _opts) do
+    path = Path.join([dir(), bucket(bucket), key])
+
+    if File.regular?(path) do
+      File.cp!(path, dest)
+      :ok
+    else
+      nil
+    end
+  end
+
   def head_page(bucket, key, _opts) do
     path = Path.join([dir(), bucket(bucket), key])
 
@@ -67,6 +78,12 @@ defmodule Hexdocs.Store.Local do
     path = Path.join([dir(), bucket(bucket), key])
     File.mkdir_p!(Path.dirname(path))
     File.write!(path, blob)
+  end
+
+  def put_file!(bucket, key, source, _opts) do
+    path = Path.join([dir(), bucket(bucket), key])
+    File.mkdir_p!(Path.dirname(path))
+    File.cp!(source, path)
   end
 
   def delete(bucket, key) do
