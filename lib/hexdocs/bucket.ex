@@ -23,8 +23,6 @@ defmodule Hexdocs.Bucket do
       meta: [{"surrogate-key", key}]
     ]
 
-    Logger.info("Uploading docs_public_bucket #{path}")
-
     case Hexdocs.Store.put(:docs_public_bucket, path, content, opts) do
       {:ok, 200, _headers, _body} ->
         :ok
@@ -39,10 +37,10 @@ defmodule Hexdocs.Bucket do
     purge([key])
   end
 
-  def upload(repository, package, version, all_versions, files) do
+  def upload(repository, package, version, all_versions, dir, files) do
     latest_version? = Hexdocs.Utils.latest_version?(package, version, all_versions)
     upload_type = upload_type(latest_version?)
-    upload_files = list_upload_files(repository, package, version, files, upload_type)
+    upload_files = list_upload_files(repository, package, version, dir, files, upload_type)
     paths = MapSet.new(upload_files, &elem(&1, 0))
 
     upload_new_files(upload_files)
@@ -53,7 +51,7 @@ defmodule Hexdocs.Bucket do
       {:docs_config, repository, package},
       @gcs_put_debounce,
       fn ->
-        docs_config = build_docs_config(repository, package, version, all_versions, files)
+        docs_config = build_docs_config(repository, package, version, all_versions, dir, files)
         upload_new_files([docs_config])
       end
     )
@@ -63,17 +61,24 @@ defmodule Hexdocs.Bucket do
   end
 
   # For Elixir and Hex we use the docs_config.js included in the tarball
-  defp build_docs_config(repository, package, _version, _all_versions, files)
+  defp build_docs_config(repository, package, _version, _all_versions, dir, files)
        when package in @special_package_names do
     path = "docs_config.js"
     unversioned_path = repository_path(repository, Path.join([package, path]))
     cdn_key = docs_config_cdn_key(repository, package)
-    {"docs_config.js", data} = List.keyfind(files, "docs_config.js", 0)
+
+    data =
+      if "docs_config.js" in files do
+        File.read!(Path.join(dir, "docs_config.js"))
+      else
+        ""
+      end
+
     {unversioned_path, cdn_key, data, public?(repository)}
   end
 
   # TODO: don't include retired versions?
-  defp build_docs_config(repository, package, version, all_versions, _files) do
+  defp build_docs_config(repository, package, version, all_versions, _dir, _files) do
     versions =
       if version in all_versions do
         all_versions
@@ -135,22 +140,32 @@ defmodule Hexdocs.Bucket do
     cond do
       deleting_latest_version? && new_latest_version ->
         key = build_key(repository, package, new_latest_version)
-        body = Hexdocs.Store.get(:repo_bucket, key)
+        tarball_path = Hexdocs.TmpDir.tmp_file("docs-tarball")
 
-        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
-          {:ok, files} ->
-            upload_files =
-              list_upload_files(repository, package, new_latest_version, files, :both)
+        case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
+          :ok ->
+            case Hexdocs.Tar.unpack_to_dir({:file, tarball_path},
+                   repository: repository,
+                   package: package,
+                   version: version
+                 ) do
+              {:ok, dir, files} ->
+                upload_files =
+                  list_upload_files(repository, package, new_latest_version, dir, files, :both)
 
-            paths = MapSet.new(upload_files, &elem(&1, 0))
-            update_versions = [version, new_latest_version]
+                paths = MapSet.new(upload_files, &elem(&1, 0))
+                update_versions = [version, new_latest_version]
 
-            upload_new_files(upload_files)
-            delete_old_docs(repository, package, update_versions, paths, :both)
-            purge_hexdocs_cache(repository, package, update_versions, :both)
+                upload_new_files(upload_files)
+                delete_old_docs(repository, package, update_versions, paths, :both)
+                purge_hexdocs_cache(repository, package, update_versions, :both)
 
-          {:error, reason} ->
-            Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+              {:error, reason} ->
+                Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+            end
+
+          nil ->
+            Logger.error("Failed to get tarball #{repository}/#{package} #{new_latest_version}")
         end
 
       deleting_latest_version? ->
@@ -171,21 +186,23 @@ defmodule Hexdocs.Bucket do
     Path.join(["repos", repository, "docs", "#{package}-#{version}.tar.gz"])
   end
 
-  defp list_upload_files(repository, package, version, files, upload_type) do
+  defp list_upload_files(repository, package, version, dir, files, upload_type) do
     Enum.flat_map(files, fn
-      {"docs_config.js", _data} ->
+      "docs_config.js" ->
         []
 
-      {path, data} ->
+      path ->
+        source = Path.join(dir, path)
+
         versioned_path =
           repository_path(repository, Path.join([package, to_string(version), path]))
 
         cdn_key = docspage_versioned_cdn_key(repository, package, version)
-        versioned = {versioned_path, cdn_key, data, public?(repository)}
+        versioned = {versioned_path, cdn_key, {:file, source}, public?(repository)}
 
         unversioned_path = repository_path(repository, Path.join([package, path]))
         cdn_key = docspage_unversioned_cdn_key(repository, package)
-        unversioned = {unversioned_path, cdn_key, data, public?(repository)}
+        unversioned = {unversioned_path, cdn_key, {:file, source}, public?(repository)}
 
         case upload_type do
           :both -> [versioned, unversioned]
@@ -210,8 +227,12 @@ defmodule Hexdocs.Bucket do
       {bucket(public?), store_key, data, opts}
     end)
     |> Task.async_stream(
-      fn {bucket, key, data, opts} ->
-        put(bucket, key, data, opts)
+      fn
+        {bucket, key, {:file, source}, opts} ->
+          put_file(bucket, key, source, opts)
+
+        {bucket, key, data, opts} ->
+          put(bucket, key, data, opts)
       end,
       max_concurrency: 10,
       timeout: 60_000
@@ -238,10 +259,6 @@ defmodule Hexdocs.Bucket do
         existing_keys,
         &delete_key?(&1, paths, repository, package, versions, upload_type)
       )
-
-    Enum.each(keys_to_delete, fn key ->
-      Logger.info("Deleting #{bucket} #{key}")
-    end)
 
     Hexdocs.Store.delete_many(bucket, keys_to_delete)
   end
@@ -332,7 +349,10 @@ defmodule Hexdocs.Bucket do
   end
 
   defp put(bucket, key, data, opts) do
-    Logger.info("Uploading #{bucket} #{key}")
     Hexdocs.Store.put!(bucket, key, data, opts)
+  end
+
+  defp put_file(bucket, key, source, opts) do
+    Hexdocs.Store.put_file!(bucket, key, source, opts)
   end
 end

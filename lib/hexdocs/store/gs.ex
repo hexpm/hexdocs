@@ -52,6 +52,18 @@ defmodule Hexdocs.Store.GS do
   end
 
   def put!(bucket, key, blob, opts) do
+    upload(bucket, key, opts, fn url, headers ->
+      Hexdocs.HTTP.put(url, headers, blob)
+    end)
+  end
+
+  def put_file!(bucket, key, source, opts) do
+    upload(bucket, key, opts, fn url, headers ->
+      Hexdocs.HTTP.put_file(url, headers, source)
+    end)
+  end
+
+  defp upload(bucket, key, opts, fun) do
     headers =
       headers() ++
         meta_headers(Keyword.fetch!(opts, :meta)) ++
@@ -64,7 +76,7 @@ defmodule Hexdocs.Store.GS do
     headers = filter_nil_values(headers)
 
     {:ok, 200, _headers, _body} =
-      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.put(url, headers, blob) end)
+      Hexdocs.HTTP.retry("gs", url, fn -> fun.(url, headers) end)
 
     :ok
   end

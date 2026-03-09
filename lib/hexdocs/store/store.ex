@@ -15,6 +15,7 @@ defmodule Hexdocs.Store do
     @type opts :: Keyword.t()
 
     @callback get(bucket, key, opts) :: body | nil
+    @callback get_to_file(bucket, key, dest :: String.t(), opts) :: :ok | nil
   end
 
   defmodule Docs do
@@ -33,6 +34,7 @@ defmodule Hexdocs.Store do
     @callback stream_page(bucket, key, opts) :: {status, headers, stream}
     @callback put(bucket, key, body, opts) :: term
     @callback put!(bucket, key, body, opts) :: term
+    @callback put_file!(bucket, key, source :: String.t(), opts) :: term
     @callback delete_many(bucket, [key]) :: [term]
   end
 
@@ -40,10 +42,12 @@ defmodule Hexdocs.Store do
 
   def list(bucket, prefix), do: impl().list(bucket, prefix)
   def get(bucket, key, opts \\ []), do: impl().get(bucket, key, opts)
+  def get_to_file(bucket, key, dest, opts \\ []), do: impl().get_to_file(bucket, key, dest, opts)
   def head_page(bucket, key, opts \\ []), do: impl().head_page(bucket, key, opts)
   def get_page(bucket, key, opts \\ []), do: impl().get_page(bucket, key, opts)
   def stream_page(bucket, key, opts \\ []), do: impl().stream_page(bucket, key, opts)
   def put(bucket, key, body, opts \\ []), do: impl().put(bucket, key, body, opts)
   def put!(bucket, key, body, opts \\ []), do: impl().put!(bucket, key, body, opts)
+  def put_file!(bucket, key, source, opts \\ []), do: impl().put_file!(bucket, key, source, opts)
   def delete_many(bucket, keys), do: impl().delete_many(bucket, keys)
 end

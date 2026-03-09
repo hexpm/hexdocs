@@ -70,6 +70,24 @@ defmodule Hexdocs.HTTP do
     end
   end
 
+  def put_file(url, headers, path) do
+    body = File.stream!(path, 65_536)
+
+    case Req.put(url,
+           headers: headers,
+           body: body,
+           retry: false,
+           decode_body: false,
+           receive_timeout: @receive_timeout
+         ) do
+      {:ok, response} ->
+        {:ok, response.status, normalize_headers(response.headers), response.body}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
   def post(url, headers, body, opts \\ []) do
     timeout = Keyword.get(opts, :receive_timeout, @receive_timeout)
 

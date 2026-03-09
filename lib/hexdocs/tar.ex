@@ -1,68 +1,43 @@
 defmodule Hexdocs.Tar do
   require Logger
 
-  @zlib_magic 16 + 15
-  @compressed_max_size 16 * 1024 * 1024
-  @uncompressed_max_size 128 * 1024 * 1024
-
   def create(files) do
     files = for {path, contents} <- files, do: {String.to_charlist(path), contents}
     {:ok, tarball} = :hex_tarball.create_docs(files)
     tarball
   end
 
-  def unpack(body, opts \\ []) do
+  def unpack_to_dir({:file, path}, opts \\ []) do
     repository = Keyword.get(opts, :repository, "UNKNOWN")
     package = Keyword.get(opts, :package, "UNKNOWN")
     version = Keyword.get(opts, :version, "UNKNOWN")
 
-    with {:ok, data} <- unzip(body),
-         {:ok, files} <- :erl_tar.extract({:binary, data}, [:memory]),
-         files = fix_paths(repository, package, version, files),
-         :ok <- check_version_dirs(files),
-         do: {:ok, files}
-  end
+    output_dir = Hexdocs.TmpDir.tmp_dir("docs")
 
-  defp unzip(data) when byte_size(data) > @compressed_max_size do
-    {:error, "too big"}
-  end
+    case :hex_tarball.unpack_docs({:file, to_charlist(path)}, to_charlist(output_dir)) do
+      :ok ->
+        files =
+          output_dir
+          |> Path.join("**")
+          |> Path.wildcard(match_dot: true)
+          |> Enum.filter(&File.regular?(&1, raw: true))
+          |> Enum.map(&Path.relative_to(&1, output_dir))
 
-  defp unzip(data) do
-    stream = :zlib.open()
+        files = fix_paths(repository, package, version, files)
 
-    try do
-      :zlib.inflateInit(stream, @zlib_magic)
-      uncompressed = unzip_inflate(stream, "", 0, :zlib.safeInflate(stream, data))
-      :zlib.inflateEnd(stream)
-      uncompressed
-    catch
-      :error, :data_error ->
-        {:error, "invalid gzip"}
-    after
-      :zlib.close(stream)
-    end
-  end
+        case check_version_dirs(files) do
+          :ok -> {:ok, output_dir, files}
+          {:error, _} = error -> error
+        end
 
-  defp unzip_inflate(_stream, _data, total, _) when total > @uncompressed_max_size do
-    {:error, "too big"}
-  end
-
-  defp unzip_inflate(stream, data, total, {:continue, uncompressed}) do
-    total = total + IO.iodata_length(uncompressed)
-    unzip_inflate(stream, [data | uncompressed], total, :zlib.safeInflate(stream, []))
-  end
-
-  defp unzip_inflate(_stream, data, total, {:finished, uncompressed}) do
-    if total + IO.iodata_length(uncompressed) > @uncompressed_max_size do
-      {:error, "too big"}
-    else
-      {:ok, IO.iodata_to_binary([data | uncompressed])}
+      {:error, reason} ->
+        {:error, inspect(reason)}
     end
   end
 
   defp check_version_dirs(files) do
     result =
-      Enum.all?(files, fn {path, _data} ->
+      Enum.all?(files, fn path ->
         first = Path.split(path) |> hd()
         Version.parse(first) == :error
       end)
@@ -75,10 +50,10 @@ defmodule Hexdocs.Tar do
   end
 
   defp fix_paths(repository, package, version, files) do
-    Enum.flat_map(files, fn {path, data} ->
+    Enum.flat_map(files, fn path ->
       case safe_path(path) do
         {:ok, path} ->
-          [{path, data}]
+          [path]
 
         :error ->
           Logger.error("Unsafe path from #{repository}/#{package} #{version}: #{path}")

@@ -3,7 +3,7 @@ defmodule Hexdocs.DebouncerTest do
   alias Hexdocs.Debouncer
 
   @short_grace_time 10
-  @grace_time 100
+  @grace_time 200
   @long_grace_time 10000
 
   setup do

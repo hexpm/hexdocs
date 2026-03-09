@@ -58,16 +58,26 @@ defmodule Hexdocs.Queue do
 
     case key_components(key) do
       {:ok, repository, package, version} ->
-        body = Hexdocs.Store.get(:repo_bucket, key)
+        tarball_path = Hexdocs.TmpDir.tmp_file("docs-tarball")
 
-        case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
-          {:ok, files} ->
-            update_index_sitemap(repository, key)
-            update_package_sitemap(repository, key, package, files)
-            Logger.info("#{key}: done")
+        case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
+          :ok ->
+            case Hexdocs.Tar.unpack_to_dir({:file, tarball_path},
+                   repository: repository,
+                   package: package,
+                   version: version
+                 ) do
+              {:ok, _dir, files} ->
+                update_index_sitemap(repository, key)
+                update_package_sitemap(repository, key, package, files)
+                Logger.info("#{key}: done")
 
-          {:error, reason} ->
-            Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+              {:error, reason} ->
+                Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+            end
+
+          nil ->
+            Logger.error("#{key}: package not found in store")
         end
 
       :error ->
@@ -104,18 +114,20 @@ defmodule Hexdocs.Queue do
           version: version
         })
 
-        body = Hexdocs.Store.get(:repo_bucket, key)
+        tarball_path = Hexdocs.TmpDir.tmp_file("docs-tarball")
 
-        if body do
-          case type do
-            :upload ->
-              process_upload(key, repository, package, version, body, start)
+        case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
+          :ok ->
+            case type do
+              :upload ->
+                process_upload(key, repository, package, version, {:file, tarball_path}, start)
 
-            :search ->
-              process_search(key, repository, package, version, body, start)
-          end
-        else
-          Logger.error("#{log_prefix} #{key}: package not found in store")
+              :search ->
+                process_search(key, repository, package, version, {:file, tarball_path}, start)
+            end
+
+          nil ->
+            Logger.error("#{log_prefix} #{key}: package not found in store")
         end
 
       :error ->
@@ -123,7 +135,7 @@ defmodule Hexdocs.Queue do
     end
   end
 
-  defp process_upload(key, repository, package, version, body, start) do
+  defp process_upload(key, repository, package, version, input, start) do
     {version, all_versions} =
       if package in @special_package_names do
         version =
@@ -144,15 +156,20 @@ defmodule Hexdocs.Queue do
         {version, all_versions}
       end
 
-    case Hexdocs.Tar.unpack(body, repository: repository, package: package, version: version) do
-      {:ok, files} ->
-        files = rewrite_files(files)
+    case Hexdocs.Tar.unpack_to_dir(input,
+           repository: repository,
+           package: package,
+           version: version
+         ) do
+      {:ok, dir, files} ->
+        rewrite_files(dir, files)
 
         Hexdocs.Bucket.upload(
           repository,
           package,
           version,
           all_versions,
+          dir,
           files
         )
 
@@ -170,7 +187,7 @@ defmodule Hexdocs.Queue do
     end
   end
 
-  defp process_search(key, repository, package, version, body, start) do
+  defp process_search(key, repository, package, version, input, start) do
     if repository != "hexpm" do
       Logger.warning("SKIPPING SEARCH INDEX #{key} (repository is not hexpm)")
     else
@@ -180,9 +197,9 @@ defmodule Hexdocs.Queue do
           :error when package in @special_package_names -> version
         end
 
-      case Hexdocs.Tar.unpack(body, package: package, version: version) do
-        {:ok, files} ->
-          update_search_index(key, package, version, files)
+      case Hexdocs.Tar.unpack_to_dir(input, package: package, version: version) do
+        {:ok, dir, files} ->
+          update_search_index(key, package, version, dir, files)
           elapsed = System.os_time(:millisecond) - start
           Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
 
@@ -279,9 +296,12 @@ defmodule Hexdocs.Queue do
     {package, version}
   end
 
-  defp rewrite_files(files) do
-    Enum.map(files, fn {path, content} ->
-      {path, Hexdocs.FileRewriter.run(path, content)}
+  defp rewrite_files(dir, files) do
+    Enum.each(files, fn path ->
+      full_path = Path.join(dir, path)
+      content = File.read!(full_path)
+      rewritten = Hexdocs.FileRewriter.run(path, content)
+      File.write!(full_path, rewritten)
     end)
   end
 
@@ -314,7 +334,7 @@ defmodule Hexdocs.Queue do
   defp update_package_sitemap("hexpm", key, package, files) do
     Logger.info("UPDATING PACKAGE SITEMAP #{key}")
 
-    pages = for {path, _content} <- files, Path.extname(path) == ".html", do: path
+    pages = for path <- files, Path.extname(path) == ".html", do: path
     body = Hexdocs.PackageSitemap.render(package, pages, DateTime.utc_now())
     Hexdocs.Bucket.upload_package_sitemap(package, body)
 
@@ -344,8 +364,13 @@ defmodule Hexdocs.Queue do
     :ok
   end
 
-  defp update_search_index(key, package, version, files) do
-    case Hexdocs.Search.find_search_items(package, version, files) do
+  defp update_search_index(key, package, version, dir, files) do
+    files_with_content =
+      Enum.map(files, fn path ->
+        {path, File.read!(Path.join(dir, path))}
+      end)
+
+    case Hexdocs.Search.find_search_items(package, version, files_with_content) do
       {proglang, items} ->
         Logger.info("DELETING SEARCH INDEX #{key}")
         Hexdocs.Search.delete(package, version)
