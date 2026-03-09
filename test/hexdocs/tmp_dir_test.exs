@@ -15,14 +15,15 @@ defmodule Hexdocs.TmpDirTest do
   test "cleanup on normal process exit" do
     test_pid = self()
 
-    Task.start(fn ->
-      file = Hexdocs.TmpDir.tmp_file("test")
-      dir = Hexdocs.TmpDir.tmp_dir("test")
-      send(test_pid, {:paths, file, dir})
-    end)
+    {:ok, task_pid} =
+      Task.start(fn ->
+        file = Hexdocs.TmpDir.tmp_file("test")
+        dir = Hexdocs.TmpDir.tmp_dir("test")
+        send(test_pid, {:paths, file, dir})
+      end)
 
     assert_receive {:paths, file, dir}
-    Process.sleep(100)
+    wait_for_cleanup(task_pid)
 
     refute File.exists?(file)
     refute File.exists?(dir)
@@ -32,15 +33,16 @@ defmodule Hexdocs.TmpDirTest do
   test "cleanup on process crash" do
     test_pid = self()
 
-    Task.start(fn ->
-      file = Hexdocs.TmpDir.tmp_file("test")
-      dir = Hexdocs.TmpDir.tmp_dir("test")
-      send(test_pid, {:paths, file, dir})
-      raise "crash"
-    end)
+    {:ok, task_pid} =
+      Task.start(fn ->
+        file = Hexdocs.TmpDir.tmp_file("test")
+        dir = Hexdocs.TmpDir.tmp_dir("test")
+        send(test_pid, {:paths, file, dir})
+        raise "crash"
+      end)
 
     assert_receive {:paths, file, dir}
-    Process.sleep(100)
+    wait_for_cleanup(task_pid)
 
     refute File.exists?(file)
     refute File.exists?(dir)
@@ -49,19 +51,20 @@ defmodule Hexdocs.TmpDirTest do
   test "multiple paths for one process" do
     test_pid = self()
 
-    Task.start(fn ->
-      paths =
-        for i <- 1..5 do
-          file = Hexdocs.TmpDir.tmp_file("test-#{i}")
-          dir = Hexdocs.TmpDir.tmp_dir("test-#{i}")
-          {file, dir}
-        end
+    {:ok, task_pid} =
+      Task.start(fn ->
+        paths =
+          for i <- 1..5 do
+            file = Hexdocs.TmpDir.tmp_file("test-#{i}")
+            dir = Hexdocs.TmpDir.tmp_dir("test-#{i}")
+            {file, dir}
+          end
 
-      send(test_pid, {:paths, paths})
-    end)
+        send(test_pid, {:paths, paths})
+      end)
 
     assert_receive {:paths, paths}
-    Process.sleep(100)
+    wait_for_cleanup(task_pid)
 
     for {file, dir} <- paths do
       refute File.exists?(file)
@@ -75,5 +78,12 @@ defmodule Hexdocs.TmpDirTest do
 
     assert File.exists?(file)
     assert File.dir?(dir)
+  end
+
+  defp wait_for_cleanup(task_pid) do
+    ref = Process.monitor(task_pid)
+    assert_receive {:DOWN, ^ref, :process, ^task_pid, _}
+    # Sync with the GenServer to ensure the :DOWN cleanup has been processed
+    :sys.get_state(Hexdocs.TmpDir)
   end
 end

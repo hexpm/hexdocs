@@ -35,7 +35,7 @@ defmodule Hexdocs.TmpDir do
   defp track(path) do
     pid = self()
     :ets.insert(@table, {pid, path})
-    GenServer.cast(__MODULE__, {:monitor, pid})
+    GenServer.call(__MODULE__, {:monitor, pid})
   end
 
   @impl true
@@ -46,12 +46,12 @@ defmodule Hexdocs.TmpDir do
   end
 
   @impl true
-  def handle_cast({:monitor, pid}, state) do
+  def handle_call({:monitor, pid}, _from, state) do
     if pid in state.monitors do
-      {:noreply, state}
+      {:reply, :ok, state}
     else
       Process.monitor(pid)
-      {:noreply, %{state | monitors: MapSet.put(state.monitors, pid)}}
+      {:reply, :ok, %{state | monitors: MapSet.put(state.monitors, pid)}}
     end
   end
 
