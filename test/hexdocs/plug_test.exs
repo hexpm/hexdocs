@@ -38,6 +38,24 @@ defmodule Hexdocs.PlugTest do
       assert get_session(conn, "oauth_return_path") == "/foo"
     end
 
+    test "sanitize protocol-relative return path to prevent open redirect" do
+      conn = conn(:get, "http://plugtest.localhost:5002//evil.com") |> call()
+      assert conn.status == 302
+      assert get_session(conn, "oauth_return_path") == "/"
+    end
+
+    test "sanitize protocol-relative return path with extra slashes" do
+      conn = conn(:get, "http://plugtest.localhost:5002///evil.com/foo") |> call()
+      assert conn.status == 302
+      assert get_session(conn, "oauth_return_path") == "/"
+    end
+
+    test "preserve valid return path" do
+      conn = conn(:get, "http://plugtest.localhost:5002/some/path") |> call()
+      assert conn.status == 302
+      assert get_session(conn, "oauth_return_path") == "/some/path"
+    end
+
     test "OAuth callback with invalid state returns error" do
       conn =
         conn(:get, "http://plugtest.localhost:5002/oauth/callback?code=abc&state=wrong")

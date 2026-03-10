@@ -97,7 +97,7 @@ defmodule Hexdocs.Plug do
     conn
     |> put_session("oauth_code_verifier", code_verifier)
     |> put_session("oauth_state", state)
-    |> put_session("oauth_return_path", conn.request_path)
+    |> put_session("oauth_return_path", safe_return_path(conn.request_path))
     |> redirect(url)
   end
 
@@ -361,6 +361,16 @@ defmodule Hexdocs.Plug do
       end
     end)
   end
+
+  defp safe_return_path("/" <> rest = path) do
+    if String.starts_with?(rest, "/") do
+      "/"
+    else
+      path
+    end
+  end
+
+  defp safe_return_path(_), do: "/"
 
   defp redirect(conn, url) do
     html = Plug.HTML.html_escape(url)
