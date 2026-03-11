@@ -19,7 +19,8 @@ if config_env() == :prod do
     queue_concurrency: String.to_integer(System.fetch_env!("HEXDOCS_QUEUE_CONCURRENCY")),
     github_user: System.fetch_env!("HEXDOCS_GITHUB_USER"),
     github_token: System.fetch_env!("HEXDOCS_GITHUB_TOKEN"),
-    host: System.fetch_env!("HEXDOCS_HOST")
+    host: System.fetch_env!("HEXDOCS_HOST"),
+    private_host: System.fetch_env!("HEXDOCS_PRIVATE_HOST")
 
   config :hexdocs, :repo_bucket, name: System.fetch_env!("HEXDOCS_REPO_BUCKET")
 

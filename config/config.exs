@@ -25,6 +25,7 @@ config :hexdocs,
   session_signing_salt: "QftsNdJO",
   session_encryption_salt: "QftsNdJO",
   host: "localhost",
+  private_host: "localhost",
   gcs_put_debounce: 0,
   special_packages: %{
     "eex" => "elixir-lang/elixir",

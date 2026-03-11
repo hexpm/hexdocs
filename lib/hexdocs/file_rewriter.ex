@@ -9,7 +9,7 @@ defmodule Hexdocs.FileRewriter do
 
   @noindex_hook ~s|<meta name="robots" content="noindex">|
 
-  @official_domains ~w(hex.pm hexdocs.pm elixir-lang.org erlang.org)
+  @official_domains ~w(hex.pm hexdocs.pm hexorgs.pm elixir-lang.org erlang.org)
 
   def run(path, content) do
     content
