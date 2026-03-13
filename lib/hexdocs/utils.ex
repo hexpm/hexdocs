@@ -5,10 +5,16 @@ defmodule Hexdocs.Utils do
 
   def hexdocs_url(repository, path) do
     "/" <> _ = path
-    host = Application.get_env(:hexdocs, :host)
-    scheme = if host == "hexdocs.pm", do: "https", else: "http"
-    subdomain = if repository == "hexpm", do: "", else: "#{repository}."
-    URI.encode("#{scheme}://#{subdomain}#{host}#{path}")
+
+    if repository == "hexpm" do
+      host = Application.get_env(:hexdocs, :host)
+      scheme = if host == "hexdocs.pm", do: "https", else: "http"
+      URI.encode("#{scheme}://#{host}#{path}")
+    else
+      host = Application.get_env(:hexdocs, :private_host)
+      scheme = if host in ["hexdocs.pm", "hexorgs.pm"], do: "https", else: "http"
+      URI.encode("#{scheme}://#{repository}.#{host}#{path}")
+    end
   end
 
   def latest_version(versions) do
