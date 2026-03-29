@@ -32,6 +32,10 @@ defmodule Hexdocs.TmpDir do
     dir
   end
 
+  def await_cleanup(pid) do
+    GenServer.call(__MODULE__, {:await_cleanup, pid}, 5000)
+  end
+
   defp track(path) do
     pid = self()
     :ets.insert(@table, {pid, path})
@@ -42,7 +46,7 @@ defmodule Hexdocs.TmpDir do
   def init(_opts) do
     Process.flag(:trap_exit, true)
     :ets.new(@table, [:named_table, :duplicate_bag, :public])
-    {:ok, %{monitors: MapSet.new()}}
+    {:ok, %{monitors: MapSet.new(), waiters: %{}}}
   end
 
   @impl true
@@ -55,10 +59,29 @@ defmodule Hexdocs.TmpDir do
     end
   end
 
+  def handle_call({:await_cleanup, pid}, from, state) do
+    if pid in state.monitors do
+      waiters = Map.update(state.waiters, pid, [from], &[from | &1])
+      {:noreply, %{state | waiters: waiters}}
+    else
+      {:reply, :ok, state}
+    end
+  end
+
   @impl true
   def handle_info({:DOWN, _ref, :process, pid, _reason}, state) do
     cleanup_pid(pid)
-    {:noreply, %{state | monitors: MapSet.delete(state.monitors, pid)}}
+
+    for from <- Map.get(state.waiters, pid, []) do
+      GenServer.reply(from, :ok)
+    end
+
+    {:noreply,
+     %{
+       state
+       | monitors: MapSet.delete(state.monitors, pid),
+         waiters: Map.delete(state.waiters, pid)
+     }}
   end
 
   @impl true
