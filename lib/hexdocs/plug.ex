@@ -36,6 +36,8 @@ defmodule Hexdocs.Plug do
     plug(Plug.SSL, rewrite_on: [:x_forwarded_proto])
   end
 
+  plug(:security_headers)
+
   # TODO: Use MFAs
   plug(Plug.Session,
     store: :cookie,
@@ -52,6 +54,13 @@ defmodule Hexdocs.Plug do
   plug(:fetch_session)
   plug(:fetch_query_params)
   plug(:run)
+
+  defp security_headers(conn, _opts) do
+    conn
+    |> put_resp_header("x-content-type-options", "nosniff")
+    |> put_resp_header("x-frame-options", "SAMEORIGIN")
+    |> put_resp_header("referrer-policy", "strict-origin-when-cross-origin")
+  end
 
   defp put_secret_key_base(conn, _opts) do
     put_in(conn.secret_key_base, Application.get_env(:hexdocs, :session_key_base))

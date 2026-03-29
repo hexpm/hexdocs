@@ -343,6 +343,14 @@ defmodule Hexdocs.PlugTest do
     end
   end
 
+  test "sets security headers" do
+    conn = conn(:get, "http://localhost:5002/foo") |> call()
+
+    assert get_resp_header(conn, "x-content-type-options") == ["nosniff"]
+    assert get_resp_header(conn, "x-frame-options") == ["SAMEORIGIN"]
+    assert get_resp_header(conn, "referrer-policy") == ["strict-origin-when-cross-origin"]
+  end
+
   defp call(conn) do
     Hexdocs.Plug.call(conn, [])
   end
