@@ -45,7 +45,7 @@ defmodule Hexdocs.MixProject do
       {:req, "~> 0.5.0"},
       {:logster, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
-      {:sentry, "~> 11.0"},
+      {:sentry, "~> 12.0"},
       {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
       {:sweet_xml, "~> 0.7.0"},
       {:hex_core, "~> 0.15.0"},
