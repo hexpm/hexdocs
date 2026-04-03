@@ -58,26 +58,30 @@ defmodule Hexdocs.Queue do
 
     case key_components(key) do
       {:ok, repository, package, version} ->
-        tarball_path = Hexdocs.TmpDir.tmp_file("docs-tarball")
+        try do
+          tarball_path = Hexdocs.TmpDir.tmp_file("docs-tarball")
 
-        case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
-          :ok ->
-            case Hexdocs.Tar.unpack_to_dir({:file, tarball_path},
-                   repository: repository,
-                   package: package,
-                   version: version
-                 ) do
-              {:ok, _dir, files} ->
-                update_index_sitemap(repository, key)
-                update_package_sitemap(repository, key, package, files)
-                Logger.info("#{key}: done")
+          case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
+            :ok ->
+              case Hexdocs.Tar.unpack_to_dir({:file, tarball_path},
+                     repository: repository,
+                     package: package,
+                     version: version
+                   ) do
+                {:ok, _dir, files} ->
+                  update_index_sitemap(repository, key)
+                  update_package_sitemap(repository, key, package, files)
+                  Logger.info("#{key}: done")
 
-              {:error, reason} ->
-                Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
-            end
+                {:error, reason} ->
+                  Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+              end
 
-          nil ->
-            Logger.error("#{key}: package not found in store")
+            nil ->
+              Logger.error("#{key}: package not found in store")
+          end
+        after
+          Hexdocs.TmpDir.cleanup()
         end
 
       :error ->
@@ -114,20 +118,24 @@ defmodule Hexdocs.Queue do
           version: version
         })
 
-        tarball_path = Hexdocs.TmpDir.tmp_file("docs-tarball")
+        try do
+          tarball_path = Hexdocs.TmpDir.tmp_file("docs-tarball")
 
-        case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
-          :ok ->
-            case type do
-              :upload ->
-                process_upload(key, repository, package, version, {:file, tarball_path}, start)
+          case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
+            :ok ->
+              case type do
+                :upload ->
+                  process_upload(key, repository, package, version, {:file, tarball_path}, start)
 
-              :search ->
-                process_search(key, repository, package, version, {:file, tarball_path}, start)
-            end
+                :search ->
+                  process_search(key, repository, package, version, {:file, tarball_path}, start)
+              end
 
-          nil ->
-            Logger.error("#{log_prefix} #{key}: package not found in store")
+            nil ->
+              Logger.error("#{log_prefix} #{key}: package not found in store")
+          end
+        after
+          Hexdocs.TmpDir.cleanup()
         end
 
       :error ->
@@ -254,18 +262,22 @@ defmodule Hexdocs.Queue do
           version: version
         })
 
-        version = Version.parse!(version)
-        all_versions = all_versions(repository, package)
-        Hexdocs.Bucket.delete(repository, package, version, all_versions)
-        update_index_sitemap(repository, key)
+        try do
+          version = Version.parse!(version)
+          all_versions = all_versions(repository, package)
+          Hexdocs.Bucket.delete(repository, package, version, all_versions)
+          update_index_sitemap(repository, key)
 
-        if repository == "hexpm" do
-          Hexdocs.Search.delete(package, version)
+          if repository == "hexpm" do
+            Hexdocs.Search.delete(package, version)
+          end
+
+          elapsed = System.os_time(:millisecond) - start
+          Logger.info("FINISHED DELETING DOCS #{key} #{elapsed}ms")
+          :ok
+        after
+          Hexdocs.TmpDir.cleanup()
         end
-
-        elapsed = System.os_time(:millisecond) - start
-        Logger.info("FINISHED DELETING DOCS #{key} #{elapsed}ms")
-        :ok
 
       {:ok, _repository, _package, _version} ->
         :skip
