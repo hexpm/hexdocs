@@ -72,6 +72,37 @@ defmodule Hexdocs.TmpDirTest do
     end
   end
 
+  test "cleanup removes paths for calling process" do
+    file = Hexdocs.TmpDir.tmp_file("test")
+    dir = Hexdocs.TmpDir.tmp_dir("test")
+
+    assert File.exists?(file)
+    assert File.dir?(dir)
+
+    Hexdocs.TmpDir.cleanup()
+
+    refute File.exists?(file)
+    refute File.exists?(dir)
+  end
+
+  test "cleanup only removes paths for calling process" do
+    test_pid = self()
+
+    Task.start(fn ->
+      other_file = Hexdocs.TmpDir.tmp_file("other")
+      send(test_pid, {:other_path, other_file})
+      Process.sleep(:infinity)
+    end)
+
+    assert_receive {:other_path, other_file}
+
+    file = Hexdocs.TmpDir.tmp_file("test")
+    Hexdocs.TmpDir.cleanup()
+
+    refute File.exists?(file)
+    assert File.exists?(other_file)
+  end
+
   test "paths persist while process is alive" do
     file = Hexdocs.TmpDir.tmp_file("test")
     dir = Hexdocs.TmpDir.tmp_dir("test")
