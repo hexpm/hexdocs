@@ -37,7 +37,7 @@ defmodule Hexdocs.Bucket do
     purge([key])
   end
 
-  def upload(repository, package, version, all_versions, dir, files) do
+  def upload(repository, package, version, all_versions, retired_versions, dir, files) do
     latest_version? = Hexdocs.Utils.latest_version?(package, version, all_versions)
     upload_type = upload_type(latest_version?)
     upload_files = list_upload_files(repository, package, version, dir, files, upload_type)
@@ -51,7 +51,17 @@ defmodule Hexdocs.Bucket do
       {:docs_config, repository, package},
       @gcs_put_debounce,
       fn ->
-        docs_config = build_docs_config(repository, package, version, all_versions, dir, files)
+        docs_config =
+          build_docs_config(
+            repository,
+            package,
+            version,
+            all_versions,
+            retired_versions,
+            dir,
+            files
+          )
+
         upload_new_files([docs_config])
       end
     )
@@ -61,7 +71,15 @@ defmodule Hexdocs.Bucket do
   end
 
   # For Elixir and Hex we use the docs_config.js included in the tarball
-  defp build_docs_config(repository, package, _version, _all_versions, dir, files)
+  defp build_docs_config(
+         repository,
+         package,
+         _version,
+         _all_versions,
+         _retired_versions,
+         dir,
+         files
+       )
        when package in @special_package_names do
     path = "docs_config.js"
     unversioned_path = repository_path(repository, Path.join([package, path]))
@@ -77,8 +95,15 @@ defmodule Hexdocs.Bucket do
     {unversioned_path, cdn_key, data, public?(repository)}
   end
 
-  # TODO: don't include retired versions?
-  defp build_docs_config(repository, package, version, all_versions, _dir, _files) do
+  defp build_docs_config(
+         repository,
+         package,
+         version,
+         all_versions,
+         retired_versions,
+         _dir,
+         _files
+       ) do
     versions =
       if version in all_versions do
         all_versions
@@ -95,11 +120,9 @@ defmodule Hexdocs.Bucket do
           url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}")
         }
 
-        if latest_version == version do
-          Map.put(map, :latest, true)
-        else
-          map
-        end
+        map = if latest_version == version, do: Map.put(map, :latest, true), else: map
+        map = if version in retired_versions, do: Map.put(map, :retired, true), else: map
+        map
       end
 
     search =
