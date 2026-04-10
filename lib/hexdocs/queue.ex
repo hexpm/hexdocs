@@ -143,7 +143,7 @@ defmodule Hexdocs.Queue do
   end
 
   defp process_upload(key, repository, package, version, input, start) do
-    {version, all_versions} =
+    {version, all_versions, retired_versions} =
       if package in @special_package_names do
         version =
           case Version.parse(version) do
@@ -156,11 +156,11 @@ defmodule Hexdocs.Queue do
           end
 
         all_versions = Hexdocs.SourceRepo.versions!(Map.fetch!(@special_packages, package))
-        {version, all_versions}
+        {version, all_versions, MapSet.new()}
       else
         version = Version.parse!(version)
-        all_versions = all_versions(repository, package)
-        {version, all_versions}
+        {all_versions, retired_versions} = all_versions(repository, package)
+        {version, all_versions, retired_versions}
       end
 
     case Hexdocs.Tar.unpack_to_dir(input,
@@ -176,6 +176,7 @@ defmodule Hexdocs.Queue do
           package,
           version,
           all_versions,
+          retired_versions,
           dir,
           files
         )
@@ -262,7 +263,7 @@ defmodule Hexdocs.Queue do
         })
 
         version = Version.parse!(version)
-        all_versions = all_versions(repository, package)
+        {all_versions, _retired_versions} = all_versions(repository, package)
         Hexdocs.Bucket.delete(repository, package, version, all_versions)
         update_index_sitemap(repository, key)
 
@@ -314,12 +315,21 @@ defmodule Hexdocs.Queue do
 
   defp all_versions(repository, package) do
     if package = Hexdocs.Hexpm.get_package(repository, package) do
-      package["releases"]
-      |> Enum.filter(& &1["has_docs"])
-      |> Enum.map(&Version.parse!(&1["version"]))
-      |> Enum.sort(&(Version.compare(&1, &2) == :gt))
+      releases = Enum.filter(package["releases"], & &1["has_docs"])
+
+      versions =
+        releases
+        |> Enum.map(&Version.parse!(&1["version"]))
+        |> Enum.sort(&(Version.compare(&1, &2) == :gt))
+
+      retired_versions =
+        releases
+        |> Enum.filter(& &1["retirement"])
+        |> MapSet.new(&Version.parse!(&1["version"]))
+
+      {versions, retired_versions}
     else
-      []
+      {[], MapSet.new()}
     end
   end
 

@@ -239,7 +239,7 @@ defmodule Hexdocs.QueueTest do
 
         %{
           "releases" => [
-            %{"version" => "1.0.0", "has_docs" => true},
+            %{"version" => "1.0.0", "has_docs" => true, "retirement" => %{"reason" => "renamed"}},
             %{"version" => "2.0.0", "has_docs" => false},
             %{"version" => "3.0.0", "has_docs" => true}
           ]
@@ -276,7 +276,8 @@ defmodule Hexdocs.QueueTest do
                },
                %{
                  "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/1.0.0",
-                 "version" => "v1.0.0"
+                 "version" => "v1.0.0",
+                 "retired" => true
                }
              ]
 
