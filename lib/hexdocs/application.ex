@@ -8,15 +8,15 @@ defmodule Hexdocs.Application do
     :logger.add_handler(:sentry_handler, Sentry.LoggerHandler, %{})
 
     port = String.to_integer(Application.get_env(:hexdocs, :port))
-    cowboy_options = [port: port]
-    Logger.info("Running Cowboy with #{inspect(cowboy_options)}")
+    bandit_options = [plug: Hexdocs.Plug, port: port]
+    Logger.info("Running Bandit with #{inspect(bandit_options)}")
 
     children = [
       Hexdocs.TmpDir,
       {Task.Supervisor, name: Hexdocs.Tasks},
       {Hexdocs.Debouncer, name: Hexdocs.Debouncer},
       goth_spec(),
-      Plug.Cowboy.child_spec(scheme: :http, plug: Hexdocs.Plug, options: cowboy_options),
+      {Bandit, bandit_options},
       Hexdocs.Queue
     ]
 
