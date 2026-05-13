@@ -16,8 +16,9 @@ defmodule Hexdocs.HTTPTest do
   end
 
   setup do
-    start_supervised!({Plug.Cowboy, plug: StreamingPlug, scheme: :http, port: 0})
-    {:ok, port: :ranch.get_port(StreamingPlug.HTTP)}
+    pid = start_supervised!({Bandit, plug: StreamingPlug, scheme: :http, port: 0})
+    {:ok, {_, port}} = ThousandIsland.listener_info(pid)
+    {:ok, port: port}
   end
 
   describe "get_stream/2" do
