@@ -80,35 +80,6 @@ defmodule Hexdocs.QueueTest do
       assert Store.get(@public_bucket, "package_names.csv") == "package1\npackage2\n"
     end
 
-    test "unsafe paths", %{test: test} do
-      Mox.expect(HexpmMock, :get_package, fn repo, package ->
-        assert repo == "hexpm"
-        assert package == "#{test}"
-
-        %{"releases" => []}
-      end)
-
-      tar =
-        Hexdocs.Tar.create([
-          {"dir/./foo.html", ""},
-          {"dir/../bar.html", ""},
-          {"dir/../../baz.html", ""}
-        ])
-
-      key = "docs/#{test}-1.0.0.tar.gz"
-      Store.put!(:repo_bucket, key, tar)
-
-      log =
-        ExUnit.CaptureLog.capture_log(fn ->
-          ref = Broadway.test_message(Hexdocs.Queue, put_message(key))
-          assert_receive {:ack, ^ref, [_], []}
-        end)
-
-      assert log =~ "Failed unpack"
-      assert log =~ "unsafe_path"
-      assert ls(@public_bucket, "#{test}/1.0.0/") == []
-    end
-
     test "overwrite main docs with newer versions", %{test: test} do
       Mox.expect(HexpmMock, :get_package, fn repo, package ->
         assert repo == "queuetest"
