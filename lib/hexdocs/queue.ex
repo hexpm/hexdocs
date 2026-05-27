@@ -66,19 +66,16 @@ defmodule Hexdocs.Queue do
 
           case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
             :ok ->
-              case Hexdocs.Tar.unpack_to_dir({:file, tarball_path},
-                     repository: repository,
-                     package: package,
-                     version: version
-                   ) do
-                {:ok, _dir, files} ->
-                  update_index_sitemap(repository, key)
-                  update_package_sitemap(repository, key, package, files)
-                  Logger.info("#{key}: done")
+              {_dir, files} =
+                Hexdocs.Tar.unpack_to_dir!({:file, tarball_path},
+                  repository: repository,
+                  package: package,
+                  version: version
+                )
 
-                {:error, reason} ->
-                  Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
-              end
+              update_index_sitemap(repository, key)
+              update_package_sitemap(repository, key, package, files)
+              Logger.info("#{key}: done")
 
             nil ->
               Logger.error("#{key}: package not found in store")
@@ -163,36 +160,33 @@ defmodule Hexdocs.Queue do
         {version, all_versions, retired_versions}
       end
 
-    case Hexdocs.Tar.unpack_to_dir(input,
-           repository: repository,
-           package: package,
-           version: version
-         ) do
-      {:ok, dir, files} ->
-        rewrite_files(dir, files)
+    {dir, files} =
+      Hexdocs.Tar.unpack_to_dir!(input,
+        repository: repository,
+        package: package,
+        version: version
+      )
 
-        Hexdocs.Bucket.upload(
-          repository,
-          package,
-          version,
-          all_versions,
-          retired_versions,
-          dir,
-          files
-        )
+    rewrite_files(dir, files)
 
-        if Hexdocs.Utils.latest_version?(package, version, all_versions) do
-          update_index_sitemap(repository, key)
-          update_package_sitemap(repository, key, package, files)
-          update_package_names_csv(repository)
-        end
+    Hexdocs.Bucket.upload(
+      repository,
+      package,
+      version,
+      all_versions,
+      retired_versions,
+      dir,
+      files
+    )
 
-        elapsed = System.os_time(:millisecond) - start
-        Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
-
-      {:error, reason} ->
-        Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
+    if Hexdocs.Utils.latest_version?(package, version, all_versions) do
+      update_index_sitemap(repository, key)
+      update_package_sitemap(repository, key, package, files)
+      update_package_names_csv(repository)
     end
+
+    elapsed = System.os_time(:millisecond) - start
+    Logger.info("FINISHED UPLOADING DOCS #{key} #{elapsed}ms")
   end
 
   defp process_search(key, repository, package, version, input, start) do
@@ -205,15 +199,16 @@ defmodule Hexdocs.Queue do
           :error when package in @special_package_names -> version
         end
 
-      case Hexdocs.Tar.unpack_to_dir(input, package: package, version: version) do
-        {:ok, dir, files} ->
-          update_search_index(key, package, version, dir, files)
-          elapsed = System.os_time(:millisecond) - start
-          Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
+      {dir, files} =
+        Hexdocs.Tar.unpack_to_dir!(input,
+          repository: repository,
+          package: package,
+          version: version
+        )
 
-        {:error, reason} ->
-          Logger.error("Failed unpack #{package} #{version}: #{reason}")
-      end
+      update_search_index(key, package, version, dir, files)
+      elapsed = System.os_time(:millisecond) - start
+      Logger.info("FINISHED INDEXING DOCS #{key} #{elapsed}ms")
     end
   end
 
