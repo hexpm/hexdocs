@@ -167,25 +167,22 @@ defmodule Hexdocs.Bucket do
 
         case Hexdocs.Store.get_to_file(:repo_bucket, key, tarball_path) do
           :ok ->
-            case Hexdocs.Tar.unpack_to_dir({:file, tarball_path},
-                   repository: repository,
-                   package: package,
-                   version: version
-                 ) do
-              {:ok, dir, files} ->
-                upload_files =
-                  list_upload_files(repository, package, new_latest_version, dir, files, :both)
+            {dir, files} =
+              Hexdocs.Tar.unpack_to_dir!({:file, tarball_path},
+                repository: repository,
+                package: package,
+                version: new_latest_version
+              )
 
-                paths = MapSet.new(upload_files, &elem(&1, 0))
-                update_versions = [version, new_latest_version]
+            upload_files =
+              list_upload_files(repository, package, new_latest_version, dir, files, :both)
 
-                upload_new_files(upload_files)
-                delete_old_docs(repository, package, update_versions, paths, :both)
-                purge_hexdocs_cache(repository, package, update_versions, :both)
+            paths = MapSet.new(upload_files, &elem(&1, 0))
+            update_versions = [version, new_latest_version]
 
-              {:error, reason} ->
-                Logger.error("Failed unpack #{repository}/#{package} #{version}: #{reason}")
-            end
+            upload_new_files(upload_files)
+            delete_old_docs(repository, package, update_versions, paths, :both)
+            purge_hexdocs_cache(repository, package, update_versions, :both)
 
           nil ->
             Logger.error("Failed to get tarball #{repository}/#{package} #{new_latest_version}")

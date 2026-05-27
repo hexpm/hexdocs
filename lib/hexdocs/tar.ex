@@ -1,13 +1,22 @@
 defmodule Hexdocs.Tar do
   require Logger
 
+  defmodule UnpackError do
+    defexception [:repository, :package, :version, :reason]
+
+    @impl true
+    def message(%{repository: repository, package: package, version: version, reason: reason}) do
+      "Failed to unpack #{repository}/#{package} #{version}: #{reason}"
+    end
+  end
+
   def create(files) do
     files = for {path, contents} <- files, do: {String.to_charlist(path), contents}
     {:ok, tarball} = :hex_tarball.create_docs(files)
     tarball
   end
 
-  def unpack_to_dir({:file, path}, opts \\ []) do
+  def unpack_to_dir!({:file, path}, opts \\ []) do
     repository = Keyword.get(opts, :repository, "UNKNOWN")
     package = Keyword.get(opts, :package, "UNKNOWN")
     version = Keyword.get(opts, :version, "UNKNOWN")
@@ -26,14 +35,15 @@ defmodule Hexdocs.Tar do
           |> Enum.map(&Path.relative_to(&1, output_dir))
 
         files = fix_paths(repository, package, version, files)
-
-        case check_version_dirs(files) do
-          :ok -> {:ok, output_dir, files}
-          {:error, _} = error -> error
-        end
+        check_version_dirs!(repository, package, version, files)
+        {output_dir, files}
 
       {:error, reason} ->
-        {:error, inspect(reason)}
+        raise UnpackError,
+          repository: repository,
+          package: package,
+          version: version,
+          reason: inspect(reason)
     end
   end
 
@@ -55,17 +65,19 @@ defmodule Hexdocs.Tar do
     end)
   end
 
-  defp check_version_dirs(files) do
-    result =
+  defp check_version_dirs!(repository, package, version, files) do
+    ok? =
       Enum.all?(files, fn path ->
         first = Path.split(path) |> hd()
         Version.parse(first) == :error
       end)
 
-    if result do
-      :ok
-    else
-      {:error, "root file or directory name not allowed to match a semver version"}
+    if not ok? do
+      raise UnpackError,
+        repository: repository,
+        package: package,
+        version: version,
+        reason: "root file or directory name not allowed to match a semver version"
     end
   end
 
