@@ -72,7 +72,7 @@ defmodule Hexdocs.Tar do
         Version.parse(first) == :error
       end)
 
-    unless ok? do
+    if not ok? do
       raise UnpackError,
         repository: repository,
         package: package,

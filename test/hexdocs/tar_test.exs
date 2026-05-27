@@ -20,7 +20,7 @@ defmodule Hexdocs.TarTest do
     path = Hexdocs.TmpDir.tmp_file("test-tarball")
     File.write!(path, "")
 
-    assert_raise Tar.UnpackError, fn ->
+    assert_raise Tar.UnpackError, ~r/Failed to unpack hexpm\/foo 1\.0\.0:/, fn ->
       Tar.unpack_to_dir!({:file, path}, repository: "hexpm", package: "foo", version: "1.0.0")
     end
   end

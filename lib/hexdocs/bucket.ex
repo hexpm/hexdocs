@@ -171,7 +171,7 @@ defmodule Hexdocs.Bucket do
               Hexdocs.Tar.unpack_to_dir!({:file, tarball_path},
                 repository: repository,
                 package: package,
-                version: version
+                version: new_latest_version
               )
 
             upload_files =
