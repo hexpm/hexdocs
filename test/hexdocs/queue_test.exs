@@ -241,12 +241,12 @@ defmodule Hexdocs.QueueTest do
 
       assert JSON.decode!(versions_json) == [
                %{
-                 "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/3.0.0",
+                 "url" => "http://#{URI.encode(Atom.to_string(test))}.localhost/3.0.0",
                  "version" => "v3.0.0",
                  "latest" => true
                },
                %{
-                 "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/1.0.0",
+                 "url" => "http://#{URI.encode(Atom.to_string(test))}.localhost/1.0.0",
                  "version" => "v1.0.0",
                  "retired" => true
                }

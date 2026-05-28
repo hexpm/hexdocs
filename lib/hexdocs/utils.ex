@@ -3,18 +3,25 @@ defmodule Hexdocs.Utils do
 
   @special_package_names Map.keys(Application.compile_env!(:hexdocs, :special_packages))
 
-  def hexdocs_url(repository, path) do
+  def hexdocs_url(repository, package, path) do
     "/" <> _ = path
 
     if repository == "hexpm" do
       host = Application.get_env(:hexdocs, :host)
       scheme = if host == "hexdocs.pm", do: "https", else: "http"
-      URI.encode("#{scheme}://#{host}#{path}")
+      URI.encode("#{scheme}://#{package}.#{host}#{path}")
     else
       host = Application.get_env(:hexdocs, :private_host)
       scheme = if host in ["hexdocs.pm", "hexorgs.pm"], do: "https", else: "http"
-      URI.encode("#{scheme}://#{repository}.#{host}#{path}")
+      URI.encode("#{scheme}://#{repository}.#{host}/#{package}#{path}")
     end
+  end
+
+  def hexdocs_apex_url(path) do
+    "/" <> _ = path
+    host = Application.get_env(:hexdocs, :host)
+    scheme = if host == "hexdocs.pm", do: "https", else: "http"
+    URI.encode("#{scheme}://#{host}#{path}")
   end
 
   def latest_version(versions) do
