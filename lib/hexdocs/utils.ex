@@ -9,13 +9,20 @@ defmodule Hexdocs.Utils do
     if repository == "hexpm" do
       host = Application.get_env(:hexdocs, :host)
       scheme = if host == "hexdocs.pm", do: "https", else: "http"
-      URI.encode("#{scheme}://#{package}.#{host}#{path}")
+      URI.encode("#{scheme}://#{package_to_subdomain(package)}.#{host}#{path}")
     else
       host = Application.get_env(:hexdocs, :private_host)
       scheme = if host in ["hexdocs.pm", "hexorgs.pm"], do: "https", else: "http"
       URI.encode("#{scheme}://#{repository}.#{host}/#{package}#{path}")
     end
   end
+
+  # Hex package names allow underscores (`^[a-z][a-z0-9_]*$`), but RFC 1123
+  # hostname labels and RFC 6125 wildcard SAN matching don't, and Fastly
+  # enforces strict SAN matching at the HTTP edge. Map `_` -> `-` for the
+  # public hexdocs.pm subdomain. The mapping is reversed in the Fastly
+  # Compute subdomain handler before the GCS bucket key is built.
+  def package_to_subdomain(name), do: String.replace(name, "_", "-")
 
   def hexdocs_apex_url(path) do
     "/" <> _ = path
