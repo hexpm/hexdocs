@@ -67,24 +67,39 @@ defmodule Hexdocs.Plug do
   end
 
   defp run(conn, _opts) do
-    case subdomain(conn.host) do
-      :error ->
-        send_resp(conn, 400, "")
+    if conn.host == Application.get_env(:hexdocs, :private_host) do
+      redirect_to_hexpm(conn)
+    else
+      case subdomain(conn.host) do
+        :error ->
+          send_resp(conn, 400, "")
 
-      {:ok, subdomain} ->
-        cond do
-          # OAuth callback - exchange code for tokens
-          conn.request_path == "/oauth/callback" ->
-            handle_oauth_callback(conn, subdomain)
+        {:ok, subdomain} ->
+          cond do
+            # OAuth callback - exchange code for tokens
+            conn.request_path == "/oauth/callback" ->
+              handle_oauth_callback(conn, subdomain)
 
-          # OAuth access token in session
-          access_token = get_session(conn, "access_token") ->
-            try_serve_page_oauth(conn, subdomain, access_token)
+            # OAuth access token in session
+            access_token = get_session(conn, "access_token") ->
+              try_serve_page_oauth(conn, subdomain, access_token)
 
-          true ->
-            redirect_oauth(conn, subdomain)
-        end
+            true ->
+              redirect_oauth(conn, subdomain)
+          end
+      end
     end
+  end
+
+  defp redirect_to_hexpm(conn) do
+    url = Application.get_env(:hexdocs, :hexpm_url)
+    html = Plug.HTML.html_escape(url)
+    body = "<html><body>You are being <a href=\"#{html}\">redirected</a>.</body></html>"
+
+    conn
+    |> put_resp_header("location", url)
+    |> put_resp_header("content-type", "text/html")
+    |> send_resp(301, body)
   end
 
   defp redirect_oauth(conn, organization) do
