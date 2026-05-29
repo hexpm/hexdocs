@@ -309,24 +309,14 @@ defmodule Hexdocs.PlugTest do
     end
   end
 
-  describe "redirect from public host to private host" do
+  describe "host handling" do
     setup do
-      original_host = Application.get_env(:hexdocs, :host)
       original_private_host = Application.get_env(:hexdocs, :private_host)
-      Application.put_env(:hexdocs, :host, "hexdocs.test")
       Application.put_env(:hexdocs, :private_host, "hexorgs.test")
 
       on_exit(fn ->
-        Application.put_env(:hexdocs, :host, original_host)
         Application.put_env(:hexdocs, :private_host, original_private_host)
       end)
-    end
-
-    test "301 redirects from *.hexdocs.test to *.hexorgs.test" do
-      conn = conn(:get, "http://myorg.hexdocs.test:5002/my_package/index.html") |> call()
-      assert conn.status == 301
-      [location] = get_resp_header(conn, "location")
-      assert location == "http://myorg.hexorgs.test/my_package/index.html"
     end
 
     test "serves docs on private host" do
@@ -339,6 +329,15 @@ defmodule Hexdocs.PlugTest do
 
     test "returns 400 for unrecognized host" do
       conn = conn(:get, "http://other.example.com:5002/foo") |> call()
+      assert conn.status == 400
+    end
+
+    test "returns 400 for *.hexdocs.pm hosts (handled by Fastly)" do
+      original_host = Application.get_env(:hexdocs, :host)
+      Application.put_env(:hexdocs, :host, "hexdocs.test")
+      on_exit(fn -> Application.put_env(:hexdocs, :host, original_host) end)
+
+      conn = conn(:get, "http://phoenix.hexdocs.test:5002/index.html") |> call()
       assert conn.status == 400
     end
   end

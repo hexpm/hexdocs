@@ -239,14 +239,16 @@ defmodule Hexdocs.QueueTest do
       ["var versionNodes = " <> versions_json, "var searchNodes = " <> search_json] =
         String.split(docs_config, [";", "\n"], trim: true)
 
+      subdomain = URI.encode(String.replace(Atom.to_string(test), "_", "-"))
+
       assert JSON.decode!(versions_json) == [
                %{
-                 "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/3.0.0",
+                 "url" => "http://#{subdomain}.localhost/3.0.0",
                  "version" => "v3.0.0",
                  "latest" => true
                },
                %{
-                 "url" => "http://localhost/#{URI.encode(Atom.to_string(test))}/1.0.0",
+                 "url" => "http://#{subdomain}.localhost/1.0.0",
                  "version" => "v1.0.0",
                  "retired" => true
                }

@@ -71,9 +71,6 @@ defmodule Hexdocs.Plug do
       :error ->
         send_resp(conn, 400, "")
 
-      {:redirect, subdomain} ->
-        redirect_to_private_host(conn, subdomain)
-
       {:ok, subdomain} ->
         cond do
           # OAuth callback - exchange code for tokens
@@ -88,20 +85,6 @@ defmodule Hexdocs.Plug do
             redirect_oauth(conn, subdomain)
         end
     end
-  end
-
-  defp redirect_to_private_host(conn, subdomain) do
-    scheme = Application.get_env(:hexdocs, :scheme)
-    host = Application.get_env(:hexdocs, :private_host)
-    url = "#{scheme}://#{subdomain}.#{host}#{conn.request_path}"
-
-    html = Plug.HTML.html_escape(url)
-    body = "<html><body>You are being <a href=\"#{html}\">redirected</a>.</body></html>"
-
-    conn
-    |> put_resp_header("location", url)
-    |> put_resp_header("content-type", "text/html")
-    |> send_resp(301, body)
   end
 
   defp redirect_oauth(conn, organization) do
@@ -285,12 +268,10 @@ defmodule Hexdocs.Plug do
   end
 
   defp subdomain(host) do
-    public_host = Application.get_env(:hexdocs, :host)
     private_host = Application.get_env(:hexdocs, :private_host)
 
     case String.split(host, ".", parts: 2) do
       [subdomain, ^private_host] -> {:ok, subdomain}
-      [subdomain, ^public_host] -> {:redirect, subdomain}
       _ -> :error
     end
   end

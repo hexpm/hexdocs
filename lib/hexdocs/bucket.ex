@@ -117,7 +117,7 @@ defmodule Hexdocs.Bucket do
       for version <- versions do
         map = %{
           version: "v#{version}",
-          url: Hexdocs.Utils.hexdocs_url(repository, "/#{package}/#{version}")
+          url: Hexdocs.Utils.hexdocs_url(repository, package, "/#{version}")
         }
 
         map = if latest_version == version, do: Map.put(map, :latest, true), else: map
