@@ -9,9 +9,13 @@ defmodule Hexdocs.PlugTest do
 
   @bucket :docs_private_bucket
 
-  test "requests without subdomain not supported" do
+  test "bare private host apex redirects to hexpm_url" do
+    # In the test env :host and :private_host are both "localhost", so a
+    # bare-host request hits the private-host-apex redirect.
     conn = conn(:get, "http://localhost:5002/foo") |> call()
-    assert conn.status == 400
+    assert conn.status == 301
+    [location] = get_resp_header(conn, "location")
+    assert location == "http://localhost:5000"
   end
 
   describe "OAuth flow" do
@@ -339,6 +343,13 @@ defmodule Hexdocs.PlugTest do
 
       conn = conn(:get, "http://phoenix.hexdocs.test:5002/index.html") |> call()
       assert conn.status == 400
+    end
+
+    test "redirects bare private host apex to hexpm_url" do
+      conn = conn(:get, "http://hexorgs.test:5002/") |> call()
+      assert conn.status == 301
+      [location] = get_resp_header(conn, "location")
+      assert location == "http://localhost:5000"
     end
   end
 
