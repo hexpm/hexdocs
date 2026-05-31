@@ -16,7 +16,23 @@ defmodule Hexdocs.FileRewriter do
     |> add_elixir_org_link(path)
     |> add_analytics(path)
     |> remove_noindex(path)
+    |> rewrite_canonical_links(path)
     |> add_nofollow(path)
+  end
+
+  @canonical_tag_re ~r{<link[^>]*\brel=["']canonical["'][^>]*>}i
+  @hexdocs_link_re ~r{https?://hexdocs\.pm/([a-z][a-z0-9_]*)(?![a-zA-Z0-9_.-])}
+
+  defp rewrite_canonical_links(content, path) do
+    if String.ends_with?(path, ".html") do
+      Regex.replace(@canonical_tag_re, content, fn tag ->
+        Regex.replace(@hexdocs_link_re, tag, fn _match, package ->
+          "https://#{Hexdocs.Utils.package_to_subdomain(package)}.hexdocs.pm"
+        end)
+      end)
+    else
+      content
+    end
   end
 
   defp add_elixir_org_link(content, path) do
