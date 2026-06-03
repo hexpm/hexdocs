@@ -75,31 +75,41 @@ defmodule Hexdocs.Plug do
           send_resp(conn, 400, "")
 
         {:ok, subdomain} ->
-          cond do
-            # OAuth callback - exchange code for tokens
-            conn.request_path == "/oauth/callback" ->
-              handle_oauth_callback(conn, subdomain)
+          if String.contains?(subdomain, "_") do
+            redirect_to_subdomain(conn, subdomain)
+          else
+            organization = Hexdocs.Utils.subdomain_to_name(subdomain)
 
-            # OAuth access token in session
-            access_token = get_session(conn, "access_token") ->
-              try_serve_page_oauth(conn, subdomain, access_token)
+            cond do
+              # OAuth callback - exchange code for tokens
+              conn.request_path == "/oauth/callback" ->
+                handle_oauth_callback(conn, organization)
 
-            true ->
-              redirect_oauth(conn, subdomain)
+              # OAuth access token in session
+              access_token = get_session(conn, "access_token") ->
+                try_serve_page_oauth(conn, organization, access_token)
+
+              true ->
+                redirect_oauth(conn, organization)
+            end
           end
       end
     end
   end
 
   defp redirect_to_hexpm(conn) do
-    url = Application.get_env(:hexdocs, :hexpm_url)
-    html = Plug.HTML.html_escape(url)
-    body = "<html><body>You are being <a href=\"#{html}\">redirected</a>.</body></html>"
+    send_redirect(conn, 301, Application.get_env(:hexdocs, :hexpm_url))
+  end
 
-    conn
-    |> put_resp_header("location", url)
-    |> put_resp_header("content-type", "text/html")
-    |> send_resp(301, body)
+  defp redirect_to_subdomain(conn, subdomain) do
+    scheme = Application.get_env(:hexdocs, :scheme)
+    host = Application.get_env(:hexdocs, :private_host)
+    query = if conn.query_string in [nil, ""], do: "", else: "?" <> conn.query_string
+
+    url =
+      "#{scheme}://#{Hexdocs.Utils.name_to_subdomain(subdomain)}.#{host}#{conn.request_path}#{query}"
+
+    send_redirect(conn, 301, url)
   end
 
   defp redirect_oauth(conn, organization) do
@@ -129,7 +139,7 @@ defmodule Hexdocs.Plug do
   defp build_oauth_redirect_uri(_conn, organization) do
     scheme = Application.get_env(:hexdocs, :scheme)
     host = Application.get_env(:hexdocs, :private_host)
-    "#{scheme}://#{organization}.#{host}/oauth/callback"
+    "#{scheme}://#{Hexdocs.Utils.name_to_subdomain(organization)}.#{host}/oauth/callback"
   end
 
   defp handle_oauth_callback(conn, organization) do
@@ -398,12 +408,16 @@ defmodule Hexdocs.Plug do
   defp safe_return_path(_), do: "/"
 
   defp redirect(conn, url) do
+    send_redirect(conn, 302, url)
+  end
+
+  defp send_redirect(conn, status, url) do
     html = Plug.HTML.html_escape(url)
     body = "<html><body>You are being <a href=\"#{html}\">redirected</a>.</body></html>"
 
     conn
     |> put_resp_header("location", url)
     |> put_resp_header("content-type", "text/html")
-    |> send_resp(302, body)
+    |> send_resp(status, body)
   end
 end

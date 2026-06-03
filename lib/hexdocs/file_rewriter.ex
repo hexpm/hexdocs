@@ -27,7 +27,7 @@ defmodule Hexdocs.FileRewriter do
     if String.ends_with?(path, ".html") do
       Regex.replace(@canonical_tag_re, content, fn tag ->
         Regex.replace(@hexdocs_link_re, tag, fn _match, package ->
-          "https://#{Hexdocs.Utils.package_to_subdomain(package)}.hexdocs.pm"
+          "https://#{Hexdocs.Utils.name_to_subdomain(package)}.hexdocs.pm"
         end)
       end)
     else
