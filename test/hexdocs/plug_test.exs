@@ -353,6 +353,50 @@ defmodule Hexdocs.PlugTest do
     end
   end
 
+  describe "hyphenated org subdomains" do
+    test "redirects an underscore subdomain to the hyphenated host preserving path and query" do
+      conn = conn(:get, "http://foo_bar.localhost:5002/pkg/1.0.0/index.html?q=1") |> call()
+      assert conn.status == 301
+      [location] = get_resp_header(conn, "location")
+      assert location == "http://foo-bar.localhost/pkg/1.0.0/index.html?q=1"
+    end
+
+    test "OAuth scope and redirect_uri use the underscored org name for a hyphenated subdomain" do
+      conn = conn(:get, "http://foo-bar.localhost:5002/pkg") |> call()
+      assert conn.status == 302
+
+      [location] = get_resp_header(conn, "location")
+      query = location |> URI.parse() |> Map.fetch!(:query) |> URI.decode_query()
+
+      assert query["scope"] == "docs:foo_bar"
+      assert query["redirect_uri"] == "http://foo-bar.localhost/oauth/callback"
+    end
+
+    test "serves from the underscored bucket key for a hyphenated subdomain", %{test: test} do
+      Mox.expect(HexpmMock, :verify_key, fn _token, organization ->
+        assert organization == "foo_bar"
+        :ok
+      end)
+
+      now = NaiveDateTime.utc_now()
+      expires_at = NaiveDateTime.add(now, 1800, :second)
+      Store.put!(@bucket, "foo_bar/#{test}/index.html", "body")
+
+      conn =
+        conn(:get, "http://foo-bar.localhost:5002/#{test}/index.html")
+        |> init_test_session(%{
+          "access_token" => "eyJhbGciOiJFUzI1NiJ9.test",
+          "refresh_token" => "eyJhbGciOiJFUzI1NiJ9.refresh",
+          "token_expires_at" => expires_at,
+          "token_created_at" => now
+        })
+        |> call()
+
+      assert conn.status == 200
+      assert conn.resp_body == "body"
+    end
+  end
+
   test "sets security headers" do
     conn = conn(:get, "http://localhost:5002/foo") |> call()
 
