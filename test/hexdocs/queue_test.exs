@@ -77,7 +77,15 @@ defmodule Hexdocs.QueueTest do
 
       assert Store.get(@public_bucket, "#{test}/index.html") == "contents"
       assert Store.get(@public_bucket, "#{test}/1.0.0/index.html") == "contents"
-      assert Store.get(@public_bucket, "package_names.csv") == "package1\npackage2\n"
+      names = Store.get(@public_bucket, "package_names.csv") |> String.split("\n", trim: true)
+      assert "package1" in names
+      assert "package2" in names
+
+      special_packages = Map.keys(Application.fetch_env!(:hexdocs, :special_packages))
+
+      for package <- special_packages do
+        assert package in names
+      end
     end
 
     test "overwrite main docs with newer versions", %{test: test} do

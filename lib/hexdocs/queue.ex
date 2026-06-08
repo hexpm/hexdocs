@@ -362,6 +362,7 @@ defmodule Hexdocs.Queue do
 
     case Hexdocs.HexRepo.get_names() do
       {:ok, names} ->
+        names = Enum.sort(@special_package_names) ++ names
         csv = for name <- names, do: [name, "\n"]
         Hexdocs.Bucket.upload_package_names_csv(csv)
 
