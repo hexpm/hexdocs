@@ -12,6 +12,7 @@ if config_env() == :prod do
     typesense_collection: System.fetch_env!("HEXDOCS_TYPESENSE_COLLECTION"),
     fastly_key: System.fetch_env!("HEXDOCS_FASTLY_KEY"),
     fastly_hexdocs: System.fetch_env!("HEXDOCS_FASTLY_HEXDOCS"),
+    fastly_hexdocs_private: System.fetch_env!("HEXDOCS_FASTLY_HEXDOCS_PRIVATE"),
     queue_id: System.fetch_env!("HEXDOCS_QUEUE_ID"),
     session_key_base: System.fetch_env!("HEXDOCS_SESSION_KEY_BASE"),
     session_signing_salt: System.fetch_env!("HEXDOCS_SESSION_SIGNING_SALT"),
