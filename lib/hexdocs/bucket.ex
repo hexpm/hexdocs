@@ -34,7 +34,7 @@ defmodule Hexdocs.Bucket do
         :ok
     end
 
-    purge([key])
+    purge("hexpm", [key])
   end
 
   def upload(repository, package, version, all_versions, retired_versions, dir, files) do
@@ -67,7 +67,7 @@ defmodule Hexdocs.Bucket do
     )
 
     purge_hexdocs_cache(repository, package, [version], upload_type)
-    purge([docs_config_cdn_key(repository, package)])
+    purge(repository, [docs_config_cdn_key(repository, package)])
   end
 
   # For Elixir and Hex we use the docs_config.js included in the tarball
@@ -331,19 +331,14 @@ defmodule Hexdocs.Bucket do
   # Don't use Path.join as it removes trailing / which is needed for bucket listing
   defp repository_path(repository, path), do: Enum.join([repository, "/", path])
 
-  defp purge_hexdocs_cache("hexpm", package, versions, :both) do
-    keys = Enum.map(versions, &docspage_versioned_cdn_key("hexpm", package, &1))
-    purge([docspage_unversioned_cdn_key("hexpm", package)] ++ keys)
+  defp purge_hexdocs_cache(repository, package, versions, :both) do
+    keys = Enum.map(versions, &docspage_versioned_cdn_key(repository, package, &1))
+    purge(repository, [docspage_unversioned_cdn_key(repository, package)] ++ keys)
   end
 
-  defp purge_hexdocs_cache("hexpm", package, versions, :versioned) do
-    versions
-    |> Enum.map(&docspage_versioned_cdn_key("hexpm", package, &1))
-    |> purge()
-  end
-
-  defp purge_hexdocs_cache(_repository, _package, _version, _publish_unversioned?) do
-    :ok
+  defp purge_hexdocs_cache(repository, package, versions, :versioned) do
+    keys = Enum.map(versions, &docspage_versioned_cdn_key(repository, package, &1))
+    purge(repository, keys)
   end
 
   defp docspage_versioned_cdn_key(repository, package, version) do
@@ -363,9 +358,10 @@ defmodule Hexdocs.Bucket do
   defp public?("hexpm"), do: true
   defp public?(_), do: false
 
-  defp purge(keys) do
-    Logger.info("Purging fastly_hexdocs #{Enum.join(keys, " ")}")
-    Hexdocs.CDN.purge_key(:fastly_hexdocs, keys)
+  defp purge(repository, keys) do
+    service = if public?(repository), do: :fastly_hexdocs, else: :fastly_hexdocs_private
+    Logger.info("Purging #{service} #{Enum.join(keys, " ")}")
+    Hexdocs.CDN.purge_key(service, keys)
   end
 
   defp put(bucket, key, data, opts) do

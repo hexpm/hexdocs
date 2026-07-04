@@ -122,6 +122,26 @@ defmodule Hexdocs.BucketTest do
     assert Store.get(@bucket, "buckettest/#{test}/index.html") == "2.0.0-beta"
   end
 
+  test "publishing docs for a private repository purges the private docs service", %{test: test} do
+    version = Version.parse!("0.0.1")
+    {dir, files} = create_files([{"index.html", "0.0.1"}])
+    Bucket.upload("buckettest", "#{test}", version, [], MapSet.new(), dir, files)
+
+    assert_receive {:purge, :fastly_hexdocs_private, keys}
+    assert "docspage/buckettest-#{test}" in keys
+    refute_receive {:purge, :fastly_hexdocs, _keys}
+  end
+
+  test "publishing docs for the hexpm repository purges the public docs service", %{test: test} do
+    version = Version.parse!("0.0.1")
+    {dir, files} = create_files([{"index.html", "0.0.1"}])
+    Bucket.upload("hexpm", "#{test}", version, [], MapSet.new(), dir, files)
+
+    assert_receive {:purge, :fastly_hexdocs, keys}
+    assert "docspage/#{test}" in keys
+    refute_receive {:purge, :fastly_hexdocs_private, _keys}
+  end
+
   test "upload docs_config.js", %{test: test} do
     version = "1.0.0"
     all_versions = []
