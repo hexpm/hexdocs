@@ -9,16 +9,27 @@ defmodule Hexdocs.CDN.Fastly do
     service_id = Application.get_env(:hexdocs, service)
     sleep_time = div(Application.get_env(:hexdocs, :fastly_purge_wait, @fastly_purge_wait), 2)
 
-    {:ok, 200, _, _} = post("service/#{service_id}/purge", body)
+    purge!(service, service_id, body)
 
     Task.Supervisor.start_child(Hexdocs.Tasks, fn ->
       Process.sleep(sleep_time)
-      {:ok, 200, _, _} = post("service/#{service_id}/purge", body)
+      purge!(service, service_id, body)
       Process.sleep(sleep_time)
-      {:ok, 200, _, _} = post("service/#{service_id}/purge", body)
+      purge!(service, service_id, body)
     end)
 
     :ok
+  end
+
+  defp purge!(service, service_id, body) do
+    case post("service/#{service_id}/purge", body) do
+      {:ok, 200, _headers, _body} ->
+        :ok
+
+      {:ok, status, _headers, body} ->
+        raise "failed to purge #{service} (service id: #{service_id}), " <>
+                "status: #{status}, body: #{inspect(body)}"
+    end
   end
 
   defp auth() do

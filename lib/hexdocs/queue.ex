@@ -400,10 +400,17 @@ defmodule Hexdocs.Queue do
     task = Task.Supervisor.async(Hexdocs.Tasks, fun)
 
     case Task.yield(task, :timer.seconds(270)) || Task.shutdown(task) do
-      {:ok, result} -> result
-      {:exit, {exception, stacktrace}} -> reraise(exception, stacktrace)
-      {:exit, reason} -> exit(reason)
-      nil -> raise "task timeout"
+      {:ok, result} ->
+        result
+
+      {:exit, {exception, stacktrace}} when is_exception(exception) ->
+        reraise(exception, stacktrace)
+
+      {:exit, reason} ->
+        exit(reason)
+
+      nil ->
+        raise "task timeout"
     end
   end
 
