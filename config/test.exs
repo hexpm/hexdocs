@@ -1,7 +1,6 @@
 import Config
 
 config :hexdocs,
-  port: "5002",
   hexpm_url: "http://localhost:5000",
   hexpm_impl: Hexdocs.HexpmMock,
   store_impl: Hexdocs.Store.Local,

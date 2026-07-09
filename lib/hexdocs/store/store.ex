@@ -4,8 +4,6 @@ defmodule Hexdocs.Store do
   @type key :: String.t()
   @type body :: binary
   @type opts :: Keyword.t()
-  @type status :: 100..599
-  @type headers :: %{String.t() => String.t()}
 
   defmodule Repo do
     @type bucket :: atom
@@ -23,15 +21,9 @@ defmodule Hexdocs.Store do
     @type prefix :: key
     @type key :: String.t()
     @type body :: binary
-    @type stream :: Enum.t()
     @type opts :: Keyword.t()
-    @type status :: 100..599
-    @type headers :: %{String.t() => String.t()}
 
     @callback list(bucket, prefix) :: [key]
-    @callback head_page(bucket, key, opts) :: {status, headers}
-    @callback get_page(bucket, key, opts) :: {status, headers, body}
-    @callback stream_page(bucket, key, opts) :: {status, headers, stream}
     @callback put(bucket, key, body, opts) :: term
     @callback put!(bucket, key, body, opts) :: term
     @callback put_file!(bucket, key, source :: String.t(), opts) :: term
@@ -43,9 +35,6 @@ defmodule Hexdocs.Store do
   def list(bucket, prefix), do: impl().list(bucket, prefix)
   def get(bucket, key, opts \\ []), do: impl().get(bucket, key, opts)
   def get_to_file(bucket, key, dest, opts \\ []), do: impl().get_to_file(bucket, key, dest, opts)
-  def head_page(bucket, key, opts \\ []), do: impl().head_page(bucket, key, opts)
-  def get_page(bucket, key, opts \\ []), do: impl().get_page(bucket, key, opts)
-  def stream_page(bucket, key, opts \\ []), do: impl().stream_page(bucket, key, opts)
   def put(bucket, key, body, opts \\ []), do: impl().put(bucket, key, body, opts)
   def put!(bucket, key, body, opts \\ []), do: impl().put!(bucket, key, body, opts)
   def put_file!(bucket, key, source, opts \\ []), do: impl().put_file!(bucket, key, source, opts)

@@ -43,8 +43,6 @@ defmodule Hexdocs.MixProject do
       {:ex_aws_sqs, "~> 3.0"},
       {:goth, "~> 1.0"},
       {:req, "~> 0.6.1"},
-      {:logster, "~> 1.0"},
-      {:bandit, "~> 1.0"},
       {:sentry, "~> 13.0"},
       {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
       {:sweet_xml, "~> 0.7.0"},

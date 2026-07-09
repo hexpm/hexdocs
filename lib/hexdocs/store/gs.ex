@@ -9,33 +9,6 @@ defmodule Hexdocs.Store.GS do
     list_stream(bucket, prefix)
   end
 
-  def head_page(bucket, key, _opts) do
-    url = url(bucket, key)
-
-    {:ok, status, headers} =
-      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.head(url, headers()) end)
-
-    {status, headers}
-  end
-
-  def get_page(bucket, key, _opts) do
-    url = url(bucket, key)
-
-    {:ok, status, headers, body} =
-      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.get(url, headers()) end)
-
-    {status, headers, body}
-  end
-
-  def stream_page(bucket, key, _opts) do
-    url = url(bucket, key)
-
-    {:ok, status, headers, stream} =
-      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.get_stream(url, headers()) end)
-
-    {status, headers, stream}
-  end
-
   def put(bucket, key, blob, opts) do
     headers =
       headers() ++

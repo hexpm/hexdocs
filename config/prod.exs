@@ -1,7 +1,6 @@
 import Config
 
 config :hexdocs,
-  scheme: "https",
   hexpm_impl: Hexdocs.Hexpm.Impl,
   store_impl: Hexdocs.Store.Impl,
   cdn_impl: Hexdocs.CDN.Fastly,
@@ -23,4 +22,3 @@ config :sentry,
 config :sasl, sasl_error_logger: false
 
 config :logger, level: :info
-config :logger, :default_formatter, metadata: [:request_id]

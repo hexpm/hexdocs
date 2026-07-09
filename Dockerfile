@@ -30,7 +30,6 @@ RUN mix deps.get
 RUN mix deps.compile
 
 # build project
-COPY priv priv
 COPY lib lib
 RUN mix compile
 

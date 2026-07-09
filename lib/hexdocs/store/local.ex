@@ -37,36 +37,6 @@ defmodule Hexdocs.Store.Local do
     end
   end
 
-  def head_page(bucket, key, _opts) do
-    path = Path.join([dir(), bucket(bucket), key])
-
-    if File.regular?(path) do
-      {200, []}
-    else
-      {404, []}
-    end
-  end
-
-  def get_page(bucket, key, _opts) do
-    path = Path.join([dir(), bucket(bucket), key])
-
-    case File.read(path) do
-      {:ok, contents} -> {200, [], contents}
-      {:error, :eisdir} -> {404, [], ""}
-      {:error, :enoent} -> {404, [], ""}
-    end
-  end
-
-  def stream_page(bucket, key, _opts) do
-    path = Path.join([dir(), bucket(bucket), key])
-
-    case File.read(path) do
-      {:ok, contents} -> {200, [], Stream.map(:binary.bin_to_list(contents), &{:ok, <<&1>>})}
-      {:error, :eisdir} -> {404, [], []}
-      {:error, :enoent} -> {404, [], []}
-    end
-  end
-
   def put(bucket, key, blob, _opts) do
     path = Path.join([dir(), bucket(bucket), key])
     File.mkdir_p!(Path.dirname(path))

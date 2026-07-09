@@ -5,21 +5,6 @@ defmodule Hexdocs.HTTP do
 
   require Logger
 
-  def head(url, headers) do
-    case Req.head(url,
-           headers: headers,
-           retry: false,
-           decode_body: false,
-           receive_timeout: @receive_timeout
-         ) do
-      {:ok, response} ->
-        {:ok, response.status, normalize_headers(response.headers)}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
   def get(url, headers, opts \\ []) do
     timeout = Keyword.get(opts, :receive_timeout, @receive_timeout)
 
@@ -31,23 +16,6 @@ defmodule Hexdocs.HTTP do
          ) do
       {:ok, response} ->
         {:ok, response.status, normalize_headers(response.headers), response.body}
-
-      {:error, reason} ->
-        {:error, reason}
-    end
-  end
-
-  def get_stream(url, headers) do
-    case Req.get(url,
-           headers: headers,
-           retry: false,
-           decode_body: false,
-           receive_timeout: @receive_timeout,
-           into: :self
-         ) do
-      {:ok, response} ->
-        stream = stream_body(response.body.ref)
-        {:ok, response.status, normalize_headers(response.headers), stream}
 
       {:error, reason} ->
         {:error, reason}
@@ -125,26 +93,6 @@ defmodule Hexdocs.HTTP do
 
   defp normalize_headers(headers) do
     Enum.map(headers, fn {name, values} -> {name, Enum.join(values, ", ")} end)
-  end
-
-  defp stream_body(ref) do
-    start_fun = fn -> :cont end
-    after_fun = fn _ -> :ok end
-
-    next_fun = fn
-      :cont ->
-        receive do
-          {^ref, {:data, data}} -> {[{:ok, data}], :cont}
-          {^ref, :done} -> {:halt, :ok}
-        after
-          30_000 -> {[{:error, :timeout}], :stop}
-        end
-
-      :stop ->
-        {:halt, :ok}
-    end
-
-    Stream.resource(start_fun, next_fun, after_fun)
   end
 
   def retry(service, url, fun) do

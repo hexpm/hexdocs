@@ -2,11 +2,8 @@ import Config
 
 if config_env() == :prod do
   config :hexdocs,
-    port: System.fetch_env!("HEXDOCS_PORT"),
     hexpm_url: System.fetch_env!("HEXDOCS_HEXPM_URL"),
     hexpm_secret: System.fetch_env!("HEXDOCS_HEXPM_SECRET"),
-    oauth_client_id: System.fetch_env!("HEXDOCS_OAUTH_CLIENT_ID"),
-    oauth_client_secret: System.fetch_env!("HEXDOCS_OAUTH_CLIENT_SECRET"),
     typesense_url: System.fetch_env!("HEXDOCS_TYPESENSE_URL"),
     typesense_api_key: System.fetch_env!("HEXDOCS_TYPESENSE_API_KEY"),
     typesense_collection: System.fetch_env!("HEXDOCS_TYPESENSE_COLLECTION"),
@@ -14,9 +11,6 @@ if config_env() == :prod do
     fastly_hexdocs: System.fetch_env!("HEXDOCS_FASTLY_HEXDOCS"),
     fastly_hexdocs_private: System.fetch_env!("HEXDOCS_FASTLY_HEXDOCS_PRIVATE"),
     queue_id: System.fetch_env!("HEXDOCS_QUEUE_ID"),
-    session_key_base: System.fetch_env!("HEXDOCS_SESSION_KEY_BASE"),
-    session_signing_salt: System.fetch_env!("HEXDOCS_SESSION_SIGNING_SALT"),
-    session_encryption_salt: System.fetch_env!("HEXDOCS_SESSION_ENCRYPTION_SALT"),
     queue_concurrency: String.to_integer(System.fetch_env!("HEXDOCS_QUEUE_CONCURRENCY")),
     github_user: System.fetch_env!("HEXDOCS_GITHUB_USER"),
     github_token: System.fetch_env!("HEXDOCS_GITHUB_TOKEN"),
