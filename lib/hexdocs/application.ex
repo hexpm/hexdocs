@@ -1,22 +1,15 @@
 defmodule Hexdocs.Application do
   use Application
 
-  require Logger
-
   def start(_type, _args) do
     setup_tmp_dir()
     :logger.add_handler(:sentry_handler, Sentry.LoggerHandler, %{})
-
-    port = String.to_integer(Application.get_env(:hexdocs, :port))
-    bandit_options = [plug: Hexdocs.Plug, port: port]
-    Logger.info("Running Bandit with #{inspect(bandit_options)}")
 
     children = [
       Hexdocs.TmpDir,
       {Task.Supervisor, name: Hexdocs.Tasks},
       {Hexdocs.Debouncer, name: Hexdocs.Debouncer},
       goth_spec(),
-      {Bandit, bandit_options},
       Hexdocs.Queue
     ]
 
@@ -25,10 +18,10 @@ defmodule Hexdocs.Application do
   end
 
   def sentry_before_send(%Sentry.Event{original_exception: exception} = event) do
-    cond do
-      Plug.Exception.status(exception) < 500 -> nil
-      Sentry.DefaultEventFilter.exclude_exception?(exception, event.source) -> nil
-      true -> event
+    if Sentry.DefaultEventFilter.exclude_exception?(exception, event.source) do
+      nil
+    else
+      event
     end
   end
 
