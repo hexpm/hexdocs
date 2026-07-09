@@ -86,19 +86,21 @@ defmodule Hexdocs.Store.GS do
     |> Task.async_stream(
       &delete(bucket, &1),
       max_concurrency: 10,
-      timeout: 10_000
+      timeout: 60_000
     )
     |> Hexdocs.Utils.raise_async_stream_error()
     |> Stream.run()
   end
 
+  # 404 means the object was already deleted, for example by a concurrent
+  # upload of the same package deleting the same unversioned files
   defp delete(bucket, key) do
     url = url(bucket, key)
 
-    {:ok, 204, _headers, _body} =
-      Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.delete(url, headers()) end)
-
-    :ok
+    case Hexdocs.HTTP.retry("gs", url, fn -> Hexdocs.HTTP.delete(url, headers()) end) do
+      {:ok, status, _headers, _body} when status in [204, 404] ->
+        :ok
+    end
   end
 
   defp list_stream(bucket, prefix) do
