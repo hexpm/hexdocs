@@ -47,6 +47,7 @@ defmodule Hexdocs.MixProject do
       {:ssl_verify_fun, "~> 1.1", manager: :rebar3, override: true},
       {:sweet_xml, "~> 0.7.0"},
       {:hex_core, "~> 0.18.0"},
+      {:bandit, "~> 1.0", only: :test},
       {:mox, "~> 1.0", only: :test}
     ]
   end
