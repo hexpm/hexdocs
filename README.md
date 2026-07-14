@@ -1,11 +1,12 @@
 # Hexdocs
 
-For the homepage, see [hexdocs-search](https://github.com/hexpm/hexdocs-search).
+> [!IMPORTANT]
+> This repository is archived. Hexdocs processing has moved to
+> [`hexpm`](https://github.com/hexpm/hexpm/tree/main/lib/hexpm/hexdocs). Please
+> use that repository for source code, issues, and contributions.
 
-## Setup
-
-    mix deps.get
-    iex -S mix
+The Hexdocs homepage is maintained in
+[`hexdocs-search`](https://github.com/hexpm/hexdocs-search).
 
 ## License
 
